@@ -98,7 +98,7 @@ export function FilterSection({
 
       <div>
         <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3">Type</h3>
-        <div className="overflow-x-auto overflow-y-visible -mx-4 px-4 sm:mx-0 sm:px-0 py-2 sm:py-0">
+        <div className="overflow-x-auto -mx-4 px-6 sm:mx-0 sm:px-2 py-3">
           <div className="flex sm:flex-wrap gap-3 min-w-max sm:min-w-0">
             <Button
               variant={selectedType === null ? "default" : "outline"}
