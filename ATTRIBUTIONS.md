@@ -1,3 +1,19 @@
-Este archivo de Figma Make incluye componentes de [shadcn/ui](https://ui.shadcn.com/) utilizados bajo [licencia MIT](https://github.com/shadcn-ui/ui/blob/main/LICENSE.md).
+# Attributions
 
-Este archivo de Figma Make incluye fotos de [Unsplash](https://unsplash.com) usadas bajo [licencia](https://unsplash.com/license).
+## UI Components
+
+This project uses components from [shadcn/ui](https://ui.shadcn.com/) under [MIT License](https://github.com/shadcn-ui/ui/blob/main/LICENSE.md).
+
+## Pokemon Data
+
+Pokemon data and sprites are provided by [PokéAPI](https://pokeapi.co/).
+
+## Icons
+
+Icons from [Lucide React](https://lucide.dev/) under ISC License.
+
+## Additional Libraries
+
+- Radix UI - MIT License
+- Tailwind CSS - MIT License
+- React - MIT License

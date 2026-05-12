@@ -1,169 +1,80 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import { PokemonCard } from "@/app/components/PokemonCard";
 import { PokemonDetail } from "@/app/components/PokemonDetail";
 import { SearchBar } from "@/app/components/SearchBar";
 import { FilterSection } from "@/app/components/FilterSection";
-
-interface Pokemon {
-  id: number;
-  name: string;
-  types: string[];
-  sprite: string;
-}
-
-interface PokemonDetailData extends Pokemon {
-  stats: {
-    hp: number;
-    attack: number;
-    defense: number;
-    specialAttack: number;
-    specialDefense: number;
-    speed: number;
-  };
-  height: number;
-  weight: number;
-  abilities: string[];
-}
-
-const generationRanges = [
-  { start: 1, end: 151 },
-  { start: 152, end: 251 },
-  { start: 252, end: 386 },
-  { start: 387, end: 493 },
-  { start: 494, end: 649 },
-  { start: 650, end: 721 },
-  { start: 722, end: 809 },
-  { start: 810, end: 905 },
-  { start: 906, end: 1025 },
-];
+import type { Pokemon, PokemonDetail as PokemonDetailType } from "@/types/pokemon";
+import { GENERATION_RANGES } from "@/types/pokemon";
+import { fetchPokemonRange, fetchPokemonDetail } from "@/services/pokemonApi";
 
 export default function App() {
   const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
-  const [filteredPokemon, setFilteredPokemon] = useState<Pokemon[]>([]);
-  const [selectedPokemon, setSelectedPokemon] = useState<PokemonDetailData | null>(null);
+  const [selectedPokemon, setSelectedPokemon] = useState<PokemonDetailType | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGeneration, setSelectedGeneration] = useState<number | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  // Fetch initial Pokemon list
   useEffect(() => {
-    const fetchPokemon = async () => {
+    const loadInitialPokemon = async () => {
       try {
         setLoading(true);
-        const promises = [];
-        
-        // Fetch first 151 Pokemon for better initial load time
-        for (let i = 1; i <= 151; i++) {
-          promises.push(
-            fetch(`https://pokeapi.co/api/v2/pokemon/${i}`)
-              .then((res) => res.json())
-              .then((data) => ({
-                id: data.id,
-                name: data.name,
-                types: data.types.map((t: any) => t.type.name),
-                sprite: data.sprites.other["official-artwork"].front_default || data.sprites.front_default,
-              }))
-          );
-        }
-
-        const results = await Promise.all(promises);
+        const results = await fetchPokemonRange(1, 151);
         setPokemonList(results);
-        setFilteredPokemon(results);
       } catch (error) {
         console.error("Error fetching Pokemon:", error);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchPokemon();
+    loadInitialPokemon();
   }, []);
 
-  // Load more Pokemon when generation changes
   useEffect(() => {
     if (selectedGeneration === null) return;
-    
     const loadGenerationPokemon = async () => {
-      const range = generationRanges[selectedGeneration - 1];
+      const range = GENERATION_RANGES[selectedGeneration - 1];
       const existingIds = new Set(pokemonList.map(p => p.id));
-      const promises = [];
-
+      const needsLoading = [];
       for (let i = range.start; i <= range.end; i++) {
         if (!existingIds.has(i)) {
-          promises.push(
-            fetch(`https://pokeapi.co/api/v2/pokemon/${i}`)
-              .then((res) => res.json())
-              .then((data) => ({
-                id: data.id,
-                name: data.name,
-                types: data.types.map((t: any) => t.type.name),
-                sprite: data.sprites.other["official-artwork"].front_default || data.sprites.front_default,
-              }))
-              .catch(() => null)
-          );
+          needsLoading.push(i);
         }
       }
-
-      if (promises.length > 0) {
-        const newPokemon = (await Promise.all(promises)).filter(p => p !== null) as Pokemon[];
+      if (needsLoading.length > 0) {
+        const newPokemon = await fetchPokemonRange(needsLoading[0], needsLoading[needsLoading.length - 1]);
         setPokemonList(prev => [...prev, ...newPokemon].sort((a, b) => a.id - b.id));
       }
     };
-
     loadGenerationPokemon();
-  }, [selectedGeneration]);
+  }, [selectedGeneration, pokemonList]);
 
-  // Filter Pokemon
-  useEffect(() => {
+  const filteredPokemon = useMemo(() => {
     let filtered = pokemonList;
-
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter((p) =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.name.toLowerCase().includes(term) ||
         p.id.toString().includes(searchTerm)
       );
     }
-
     if (selectedGeneration !== null) {
-      const range = generationRanges[selectedGeneration - 1];
+      const range = GENERATION_RANGES[selectedGeneration - 1];
       filtered = filtered.filter((p) => p.id >= range.start && p.id <= range.end);
     }
-
     if (selectedType) {
       filtered = filtered.filter((p) => p.types.includes(selectedType));
     }
-
-    setFilteredPokemon(filtered);
+    return filtered;
   }, [searchTerm, selectedGeneration, selectedType, pokemonList]);
 
-  const fetchPokemonDetail = async (id: number) => {
+  const handlePokemonClick = async (id: number) => {
     setLoadingDetail(true);
     try {
-      const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-      const data = await response.json();
-      
-      const detailData: PokemonDetailData = {
-        id: data.id,
-        name: data.name,
-        types: data.types.map((t: any) => t.type.name),
-        sprite: data.sprites.other["official-artwork"].front_default || data.sprites.front_default,
-        stats: {
-          hp: data.stats[0].base_stat,
-          attack: data.stats[1].base_stat,
-          defense: data.stats[2].base_stat,
-          specialAttack: data.stats[3].base_stat,
-          specialDefense: data.stats[4].base_stat,
-          speed: data.stats[5].base_stat,
-        },
-        height: data.height,
-        weight: data.weight,
-        abilities: data.abilities.map((a: any) => a.ability.name),
-      };
-
-      setSelectedPokemon(detailData);
+      const detail = await fetchPokemonDetail(id);
+      setSelectedPokemon(detail);
     } catch (error) {
       console.error("Error fetching Pokemon detail:", error);
     } finally {
@@ -186,7 +97,6 @@ export default function App() {
           </div>
         </div>
       </header>
-
       <div className="px-3 sm:px-4 py-4 sm:py-8 max-w-7xl mx-auto">
         {/* Filters */}
         <div className="mb-4 sm:mb-8 bg-white rounded-2xl p-4 sm:p-6 shadow-md">
@@ -197,7 +107,6 @@ export default function App() {
             onTypeChange={setSelectedType}
           />
         </div>
-
         {/* Pokemon Grid */}
         {loading ? (
           <div className="flex justify-center items-center h-64">
@@ -215,13 +124,12 @@ export default function App() {
                 <PokemonCard
                   key={pokemon.id}
                   pokemon={pokemon}
-                  onClick={() => fetchPokemonDetail(pokemon.id)}
+                  onClick={() => handlePokemonClick(pokemon.id)}
                 />
               ))}
             </div>
           </>
         )}
-
         {filteredPokemon.length === 0 && !loading && (
           <div className="text-center py-16">
             <p className="text-gray-500 text-lg sm:text-xl">No Pokémon found</p>
@@ -229,7 +137,6 @@ export default function App() {
           </div>
         )}
       </div>
-
       {/* Detail Modal */}
       {selectedPokemon && !loadingDetail && (
         <PokemonDetail
@@ -237,7 +144,6 @@ export default function App() {
           onClose={() => setSelectedPokemon(null)}
         />
       )}
-
       {loadingDetail && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <Loader2 className="w-12 h-12 animate-spin text-white" />

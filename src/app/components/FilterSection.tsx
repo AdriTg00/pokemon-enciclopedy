@@ -71,8 +71,8 @@ export function FilterSection({
     <div className="space-y-4 sm:space-y-6">
       <div>
         <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3">Generation</h3>
-        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-          <div className="flex sm:flex-wrap gap-2 pb-2 sm:pb-0 min-w-max sm:min-w-0">
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 sm:pb-0">
+          <div className="flex sm:flex-wrap gap-2 min-w-max sm:min-w-0">
             <Button
               variant={selectedGeneration === null ? "default" : "outline"}
               onClick={() => onGenerationChange(null)}
@@ -98,8 +98,8 @@ export function FilterSection({
 
       <div>
         <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3">Type</h3>
-        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-          <div className="flex sm:flex-wrap gap-2 pb-2 sm:pb-0 min-w-max sm:min-w-0">
+        <div className="overflow-x-auto overflow-y-visible -mx-4 px-4 sm:mx-0 sm:px-0 py-2 sm:py-0">
+          <div className="flex sm:flex-wrap gap-3 min-w-max sm:min-w-0">
             <Button
               variant={selectedType === null ? "default" : "outline"}
               onClick={() => onTypeChange(null)}
@@ -114,8 +114,8 @@ export function FilterSection({
                 onClick={() => onTypeChange(type)}
                 className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full capitalize font-semibold text-white transition-all text-xs sm:text-sm whitespace-nowrap flex-shrink-0 ${
                   selectedType === type
-                    ? "ring-4 ring-offset-2 ring-gray-400 scale-110"
-                    : "opacity-70 hover:opacity-100 active:opacity-100"
+                    ? "shadow-[0_0_0_3px_rgba(100,116,139,0.5)] scale-105"
+                    : "shadow-md opacity-80 hover:opacity-100 active:scale-95"
                 }`}
                 style={{ backgroundColor: typeColors[type] }}
               >
