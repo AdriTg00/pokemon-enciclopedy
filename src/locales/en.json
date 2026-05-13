@@ -5,7 +5,9 @@
     "showing": "Showing {{count}} Pokémon",
     "noPokemonFound": "No Pokémon found",
     "tryAdjustingFilters": "Try adjusting the filters",
-    "imageError": "Error loading image"
+    "imageError": "Error loading image",
+    "viewTierList": "Tier List",
+    "backToDex": "Back to PokéDex"
   },
   "filters": {
     "generation": "Generation",
@@ -26,6 +28,15 @@
     "spanish": "Spanish",
     "english": "English",
     "french": "French"
+  },
+  "tiers": {
+    "s": "S Tier",
+    "a": "A Tier",
+    "b": "B Tier",
+    "c": "C Tier",
+    "d": "D Tier",
+    "unranked": "Unranked",
+    "allPokemonClassified": "All Pokémon have been classified"
   },
   "types": {
     "normal": "Normal", "fire": "Fire", "water": "Water", "electric": "Electric", "grass": "Grass", "ice": "Ice", "fighting": "Fighting", "poison": "Poison", "ground": "Ground", "flying": "Flying", "psychic": "Psychic", "bug": "Bug", "rock": "Rock", "ghost": "Ghost", "dragon": "Dragon", "dark": "Dark", "steel": "Steel", "fairy": "Fairy"

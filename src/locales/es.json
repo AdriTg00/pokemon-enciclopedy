@@ -5,7 +5,9 @@
     "showing": "Mostrando {{count}} Pokémon",
     "noPokemonFound": "No se encontraron Pokémon",
     "tryAdjustingFilters": "Prueba a cambiar los filtros",
-    "imageError": "Error al cargar la imagen"
+    "imageError": "Error al cargar la imagen",
+    "viewTierList": "Tier List",
+    "backToDex": "Volver a la PokéDex"
   },
   "filters": {
     "generation": "Generación",
@@ -27,6 +29,15 @@
     "english": "Inglés",
     "french": "Francés"
   },
+  "tiers": {
+    "s": "Nivel S",
+    "a": "Nivel A",
+    "b": "Nivel B",
+    "c": "Nivel C",
+    "d": "Nivel D",
+    "unranked": "Sin clasificar",
+    "allPokemonClassified": "Todos los Pokémon han sido clasificados"
+  },
   "types": {
     "normal": "Normal", "fire": "Fuego", "water": "Agua", "electric": "Eléctrico", "grass": "Planta", "ice": "Hielo", "fighting": "Lucha", "poison": "Veneno", "ground": "Tierra", "flying": "Volador", "psychic": "Psíquico", "bug": "Bicho", "rock": "Roca", "ghost": "Fantasma", "dragon": "Dragón", "dark": "Siniestro", "steel": "Acero", "fairy": "Hada"
   },
@@ -39,5 +50,9 @@
     "torrent": "Torrente",
     "shield-dust": "Polvo Escudo",
     "static": "Electricidad Estática"
+  },
+  "tiers": {
+    "unranked": "Pokémon sin clasificar",
+    "instructions": "Arrastra los Pokémon a los niveles para crear tu lista"
   }
 }
