@@ -83,4 +83,11 @@ MIT
 
 - [PokéAPI](https://pokeapi.co/) for Pokemon data
 - [shadcn/ui](https://ui.shadcn.com/) for UI components
+
+## To sync with Android Studio
+npm install @capacitor/android
+npm run build
+npx cap add android
+npx cap sync android
+npx cap open android
   
