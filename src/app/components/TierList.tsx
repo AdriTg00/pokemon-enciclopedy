@@ -36,6 +36,7 @@ export function TierList({ initialPokemon }: TierListProps) {
 
   const [isExporting, setIsExporting] = useState(false);
   const [unrankedSearchTerm, setUnrankedSearchTerm] = useState('');
+  const isLoadingMoreRef = useRef(false);
 
   const [selectedItem, setSelectedItem] = useState<{
     id: number;
@@ -96,11 +97,12 @@ export function TierList({ initialPokemon }: TierListProps) {
   }, [assignedIds, allPokemon]);
 
   const loadMorePokemon = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
+    if (isLoadingMoreRef.current || loadingMore || !hasMore) return;
+
+    isLoadingMoreRef.current = true;
+    setLoadingMore(true);
 
     try {
-      setLoadingMore(true);
-
       const start = nextPokemonId;
       const end = Math.min(start + PAGE_SIZE - 1, TOTAL_POKEMON);
 
@@ -118,6 +120,7 @@ export function TierList({ initialPokemon }: TierListProps) {
       });
 
       const nextId = end + 1;
+
       setNextPokemonId(nextId);
 
       if (nextId > TOTAL_POKEMON) {
@@ -126,6 +129,7 @@ export function TierList({ initialPokemon }: TierListProps) {
     } catch (error) {
       console.error('Error loading more Pokémon in tier list:', error);
     } finally {
+      isLoadingMoreRef.current = false;
       setLoadingMore(false);
     }
   }, [loadingMore, hasMore, nextPokemonId]);
@@ -140,7 +144,7 @@ export function TierList({ initialPokemon }: TierListProps) {
       (entries) => {
         const firstEntry = entries[0];
 
-        if (firstEntry.isIntersecting) {
+        if (firstEntry.isIntersecting && !isLoadingMoreRef.current) {
           loadMorePokemon();
         }
       },
@@ -427,7 +431,7 @@ export function TierList({ initialPokemon }: TierListProps) {
                           event.stopPropagation();
                           movePokemon(id, tier.id, null);
                         }}
-                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:bg-red-600 sm:p-1"
+                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-20 hover:bg-red-600 sm:p-1"
                         title="Remove"
                       >
                         <X className="w-3 h-3" />
@@ -498,16 +502,15 @@ export function TierList({ initialPokemon }: TierListProps) {
               ))}
 
               {hasMore && (
-                <div ref={loadMoreRef} className="w-full flex justify-center items-center py-6">
-                  {loadingMore ? (
+                <div
+                  ref={loadMoreRef}
+                  className="w-full flex justify-center items-center py-6 min-h-16"
+                >
+                  {loadingMore && (
                     <div className="flex items-center gap-2 text-muted-foreground font-medium">
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>{t('app.loading') || 'Loading...'}</span>
+                      <span>{t('app.loading')}</span>
                     </div>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">
-                      {t('app.scrollToLoadMore') || 'Scroll to load more'}
-                    </span>
                   )}
                 </div>
               )}

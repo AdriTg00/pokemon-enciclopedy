@@ -1,36 +1,26 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { ThemeToggle } from "./components/ThemeToggle";
-import { Loader2 } from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { LanguageToggle } from "./components/LanguageToggle";
-import { PokemonCard } from "@/app/components/PokemonCard";
-import { PokemonDetail } from "@/app/components/PokemonDetail";
-import { SearchBar } from "@/app/components/SearchBar";
-import { FilterSection } from "@/app/components/FilterSection";
-import { TierList } from "@/app/components/TierList";
-import type {
-  Pokemon,
-  PokemonDetail as PokemonDetailType,
-} from "@/types/pokemon";
-import { GENERATION_RANGES } from "@/types/pokemon";
-import {
-  fetchPokemonRange,
-  fetchPokemonDetail,
-  fetchPokemonByIds,
-} from "@/services/pokemonApi";
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { ThemeToggle } from './components/ThemeToggle';
+import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { LanguageToggle } from './components/LanguageToggle';
+import { PokemonCard } from '@/app/components/PokemonCard';
+import { PokemonDetail } from '@/app/components/PokemonDetail';
+import { SearchBar } from '@/app/components/SearchBar';
+import { FilterSection } from '@/app/components/FilterSection';
+import { TierList } from '@/app/components/TierList';
+import type { Pokemon, PokemonDetail as PokemonDetailType } from '@/types/pokemon';
+import { GENERATION_RANGES } from '@/types/pokemon';
+import { fetchPokemonRange, fetchPokemonDetail, fetchPokemonByIds } from '@/services/pokemonApi';
 
 const PAGE_SIZE = 20;
 const TOTAL_POKEMON = 1024;
 
 export default function App() {
   const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
-  const [view, setView] = useState<"dex" | "tierlist">("dex");
-  const [selectedPokemon, setSelectedPokemon] =
-    useState<PokemonDetailType | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedGeneration, setSelectedGeneration] = useState<number | null>(
-    null
-  );
+  const [view, setView] = useState<'dex' | 'tierlist'>('dex');
+  const [selectedPokemon, setSelectedPokemon] = useState<PokemonDetailType | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedGeneration, setSelectedGeneration] = useState<number | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -76,7 +66,7 @@ export default function App() {
         setNextPokemonId(1);
         setHasMore(false);
       } catch (error) {
-        console.error("Error fetching Pokémon:", error);
+        console.error('Error fetching Pokémon:', error);
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -92,13 +82,7 @@ export default function App() {
   }, [selectedGeneration]);
 
   const loadMorePokemon = useCallback(async () => {
-    if (
-      loading ||
-      loadingMore ||
-      !hasMore ||
-      selectedGeneration !== null ||
-      view !== "dex"
-    ) {
+    if (loading || loadingMore || !hasMore || selectedGeneration !== null || view !== 'dex') {
       return;
     }
 
@@ -129,24 +113,17 @@ export default function App() {
         setHasMore(false);
       }
     } catch (error) {
-      console.error("Error loading more Pokémon:", error);
+      console.error('Error loading more Pokémon:', error);
     } finally {
       setLoadingMore(false);
     }
-  }, [
-    loading,
-    loadingMore,
-    hasMore,
-    selectedGeneration,
-    view,
-    nextPokemonId,
-  ]);
+  }, [loading, loadingMore, hasMore, selectedGeneration, view, nextPokemonId]);
 
   useEffect(() => {
     const target = loadMoreRef.current;
 
     if (!target) return;
-    if (view !== "dex") return;
+    if (view !== 'dex') return;
     if (selectedGeneration !== null) return;
     if (!hasMore) return;
 
@@ -160,7 +137,7 @@ export default function App() {
       },
       {
         root: null,
-        rootMargin: "250px",
+        rootMargin: '250px',
         threshold: 0.1,
       }
     );
@@ -180,23 +157,18 @@ export default function App() {
 
       filtered = filtered.filter(
         (pokemon) =>
-          pokemon.name.toLowerCase().includes(term) ||
-          pokemon.id.toString().includes(searchTerm)
+          pokemon.name.toLowerCase().includes(term) || pokemon.id.toString().includes(searchTerm)
       );
     }
 
     if (selectedGeneration !== null) {
       const range = GENERATION_RANGES[selectedGeneration - 1];
 
-      filtered = filtered.filter(
-        (pokemon) => pokemon.id >= range.start && pokemon.id <= range.end
-      );
+      filtered = filtered.filter((pokemon) => pokemon.id >= range.start && pokemon.id <= range.end);
     }
 
     if (selectedType) {
-      filtered = filtered.filter((pokemon) =>
-        pokemon.types.includes(selectedType)
-      );
+      filtered = filtered.filter((pokemon) => pokemon.types.includes(selectedType));
     }
 
     return filtered;
@@ -209,7 +181,7 @@ export default function App() {
       const detail = await fetchPokemonDetail(id, i18n.language);
       setSelectedPokemon(detail);
     } catch (error) {
-      console.error("Error fetching Pokemon detail:", error);
+      console.error('Error fetching Pokemon detail:', error);
     } finally {
       setLoadingDetail(false);
     }
@@ -236,10 +208,10 @@ export default function App() {
               <ThemeToggle />
 
               <button
-                onClick={() => setView(view === "dex" ? "tierlist" : "dex")}
+                onClick={() => setView(view === 'dex' ? 'tierlist' : 'dex')}
                 className="rounded-full bg-primary px-3 py-2 sm:px-4 text-xs sm:text-sm font-bold text-primary-foreground shadow-md transition-transform hover:scale-105 whitespace-nowrap"
               >
-                {view === "dex" ? t("app.viewTierList") : t("app.backToDex")}
+                {view === 'dex' ? t('app.viewTierList') : t('app.backToDex')}
               </button>
             </div>
           </div>
@@ -251,7 +223,7 @@ export default function App() {
       </header>
 
       <div className="px-3 sm:px-4 py-4 sm:py-8 max-w-7xl mx-auto">
-        {view === "dex" ? (
+        {view === 'dex' ? (
           <>
             <div className="mb-4 sm:mb-8 bg-card text-card-foreground border border-border rounded-2xl p-4 sm:p-6 shadow-md transition-colors">
               <FilterSection
@@ -270,7 +242,7 @@ export default function App() {
               <>
                 <div className="text-center mb-4 sm:mb-6">
                   <p className="text-muted-foreground font-medium text-sm sm:text-base">
-                    {t("app.showing", { count: filteredPokemon.length })}
+                    {t('app.showing', { count: filteredPokemon.length })}
                   </p>
                 </div>
 
@@ -285,14 +257,11 @@ export default function App() {
                 </div>
 
                 {selectedGeneration === null && hasMore && (
-                  <div
-                    ref={loadMoreRef}
-                    className="flex justify-center items-center py-8 min-h-20"
-                  >
+                  <div ref={loadMoreRef} className="flex justify-center items-center py-8 min-h-20">
                     {loadingMore && (
-                      <div className="flex items-center gap-2 text-muted-foreground font-medium">
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        <span>{t("app.loading") || "Loading..."}</span>
+                      <div className="flex items-center gap-1 text-sm font-medium text-muted-foreground">
+                        <span>{t('app.loading')}</span>
+                        <span className="animate-pulse">...</span>
                       </div>
                     )}
                   </div>
@@ -303,10 +272,10 @@ export default function App() {
             {filteredPokemon.length === 0 && !loading && (
               <div className="text-center py-16">
                 <p className="text-muted-foreground text-lg sm:text-xl">
-                  {t("app.noPokemonFound")}
+                  {t('app.noPokemonFound')}
                 </p>
                 <p className="text-muted-foreground/70 mt-2 text-sm sm:text-base">
-                  {t("app.tryAdjustingFilters")}
+                  {t('app.tryAdjustingFilters')}
                 </p>
               </div>
             )}
@@ -317,10 +286,7 @@ export default function App() {
       </div>
 
       {selectedPokemon && !loadingDetail && (
-        <PokemonDetail
-          pokemon={selectedPokemon}
-          onClose={() => setSelectedPokemon(null)}
-        />
+        <PokemonDetail pokemon={selectedPokemon} onClose={() => setSelectedPokemon(null)} />
       )}
 
       {loadingDetail && (

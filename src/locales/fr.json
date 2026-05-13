@@ -7,7 +7,8 @@
     "tryAdjustingFilters": "Essayez de modifier les filtres",
     "imageError": "Erreur de chargement de l'image",
     "viewTierList": "Tier List",
-    "backToDex": "Retour au PokéDex"
+    "backToDex": "Retour au PokéDex",
+    "loading": "Chargement..."
   },
   "filters": {
     "generation": "Génération",
