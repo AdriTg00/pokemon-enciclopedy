@@ -312,7 +312,7 @@ export default function App() {
             )}
           </>
         ) : (
-          <TierList allPokemon={pokemonList} />
+          <TierList initialPokemon={pokemonList} />
         )}
       </div>
 

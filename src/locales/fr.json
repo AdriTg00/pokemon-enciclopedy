@@ -39,7 +39,8 @@
     "unranked": "Non classé",
     "allPokemonClassified": "Tous les Pokémon ont été classés",
     "exportPDF": "Exporter PDF",
-    "deletePrompt": "Glissez ici pour supprimer"
+    "deletePrompt": "Glissez ici pour supprimer",
+    "exportPNG": "Exporter PNG"
   },
   "types": {
     "normal": "Normal",

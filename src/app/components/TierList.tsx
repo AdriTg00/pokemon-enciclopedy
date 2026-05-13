@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { fetchPokemonRange, fetchPokemonByIds } from '@/services/pokemonApi';
 import { useTranslation } from 'react-i18next';
 import type { Pokemon } from '@/types/pokemon';
 import { ImageWithFallback } from './ImageWithFallback';
-import { SearchBar } from './SearchBar'; // Importamos el componente SearchBar
+import { SearchBar } from './SearchBar';
 import { Download, Loader2, X } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 
 interface TierListProps {
-  allPokemon: Pokemon[];
+  initialPokemon: Pokemon[];
 }
 
 const TIER_CONFIG = [
@@ -18,18 +19,154 @@ const TIER_CONFIG = [
   { id: 'D', color: 'bg-blue-500' },
 ];
 
-export function TierList({ allPokemon }: TierListProps) {
+const PAGE_SIZE = 20;
+const TOTAL_POKEMON = 1024;
+
+export function TierList({ initialPokemon }: TierListProps) {
   const { t } = useTranslation();
+
   const tierListRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const unrankedScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const [allPokemon, setAllPokemon] = useState<Pokemon[]>(initialPokemon);
+  const [nextPokemonId, setNextPokemonId] = useState(initialPokemon.length + 1);
+  const [hasMore, setHasMore] = useState(initialPokemon.length < TOTAL_POKEMON);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const [isExporting, setIsExporting] = useState(false);
+  const [unrankedSearchTerm, setUnrankedSearchTerm] = useState('');
+
   const [selectedItem, setSelectedItem] = useState<{
     id: number;
     sourceTier: string | null;
   } | null>(null);
+
   const [tiers, setTiers] = useState<Record<string, number[]>>(() => {
     const saved = localStorage.getItem('pokemon-tier-list');
     return saved ? JSON.parse(saved) : { S: [], A: [], B: [], C: [], D: [] };
   });
+
+  useEffect(() => {
+    setAllPokemon((prev) => {
+      const existingIds = new Set(prev.map((pokemon) => pokemon.id));
+
+      const mergedPokemon = [
+        ...prev,
+        ...initialPokemon.filter((pokemon) => !existingIds.has(pokemon.id)),
+      ];
+
+      return mergedPokemon.sort((a, b) => a.id - b.id);
+    });
+  }, [initialPokemon]);
+
+  useEffect(() => {
+    localStorage.setItem('pokemon-tier-list', JSON.stringify(tiers));
+  }, [tiers]);
+
+  const assignedIds = useMemo(() => Object.values(tiers).flat(), [tiers]);
+
+  useEffect(() => {
+    const loadMissingAssignedPokemon = async () => {
+      const loadedIds = new Set(allPokemon.map((pokemon) => pokemon.id));
+
+      const missingAssignedIds = assignedIds.filter((id) => !loadedIds.has(id));
+
+      if (missingAssignedIds.length === 0) return;
+
+      try {
+        const missingPokemon = await fetchPokemonByIds(missingAssignedIds);
+
+        setAllPokemon((prev) => {
+          const existingIds = new Set(prev.map((pokemon) => pokemon.id));
+
+          const mergedPokemon = [
+            ...prev,
+            ...missingPokemon.filter((pokemon) => !existingIds.has(pokemon.id)),
+          ];
+
+          return mergedPokemon.sort((a, b) => a.id - b.id);
+        });
+      } catch (error) {
+        console.error('Error loading assigned Pokémon:', error);
+      }
+    };
+
+    loadMissingAssignedPokemon();
+  }, [assignedIds, allPokemon]);
+
+  const loadMorePokemon = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+
+    try {
+      setLoadingMore(true);
+
+      const start = nextPokemonId;
+      const end = Math.min(start + PAGE_SIZE - 1, TOTAL_POKEMON);
+
+      const newPokemon = await fetchPokemonRange(start, end);
+
+      setAllPokemon((prev) => {
+        const existingIds = new Set(prev.map((pokemon) => pokemon.id));
+
+        const mergedPokemon = [
+          ...prev,
+          ...newPokemon.filter((pokemon) => !existingIds.has(pokemon.id)),
+        ];
+
+        return mergedPokemon.sort((a, b) => a.id - b.id);
+      });
+
+      const nextId = end + 1;
+      setNextPokemonId(nextId);
+
+      if (nextId > TOTAL_POKEMON) {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('Error loading more Pokémon in tier list:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, nextPokemonId]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    const scrollContainer = unrankedScrollRef.current;
+
+    if (!target || !scrollContainer || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const firstEntry = entries[0];
+
+        if (firstEntry.isIntersecting) {
+          loadMorePokemon();
+        }
+      },
+      {
+        root: scrollContainer,
+        rootMargin: '150px',
+        threshold: 0.1,
+      }
+    );
+
+    observer.observe(target);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMore, loadingMore, nextPokemonId, loadMorePokemon]);
+
+  const filteredUnrankedPokemon = useMemo(() => {
+    return allPokemon
+      .filter((pokemon) => !assignedIds.includes(pokemon.id))
+      .filter(
+        (pokemon) =>
+          pokemon.name.toLowerCase().includes(unrankedSearchTerm.toLowerCase()) ||
+          pokemon.id.toString().includes(unrankedSearchTerm)
+      );
+  }, [allPokemon, assignedIds, unrankedSearchTerm]);
 
   const handleExport = async () => {
     if (!tierListRef.current) return;
@@ -38,7 +175,6 @@ export function TierList({ allPokemon }: TierListProps) {
 
     try {
       const html2canvas = (await import('html2canvas')).default;
-      const { jsPDF } = await import('jspdf');
 
       const canvas = await html2canvas(tierListRef.current, {
         useCORS: true,
@@ -48,27 +184,43 @@ export function TierList({ allPokemon }: TierListProps) {
         windowWidth: 1200,
 
         onclone: (clonedDoc) => {
-          const clonedTierList = clonedDoc.querySelector(
-            "[data-export-tier-list='true']"
-          ) as HTMLElement | null;
+          clonedDoc.documentElement.classList.remove('dark');
 
-          if (clonedTierList) {
-            clonedTierList.style.width = '1100px';
-            clonedTierList.style.maxWidth = '1100px';
+          const rootStyle = clonedDoc.createElement('style');
+
+          rootStyle.textContent = `
+          :root {
+            --background: #ffffff !important;
+            --foreground: #000000 !important;
+            --card: #ffffff !important;
+            --card-foreground: #000000 !important;
+            --popover: #ffffff !important;
+            --popover-foreground: #000000 !important;
+            --primary: #111827 !important;
+            --primary-foreground: #ffffff !important;
+            --secondary: #f3f4f6 !important;
+            --secondary-foreground: #111827 !important;
+            --muted: #f3f4f6 !important;
+            --muted-foreground: #4b5563 !important;
+            --accent: #f3f4f6 !important;
+            --accent-foreground: #111827 !important;
+            --border: #d1d5db !important;
+            --input: #ffffff !important;
+            --ring: #9ca3af !important;
           }
 
-          const style = clonedDoc.createElement('style');
+          html,
+          body {
+            background: #ffffff !important;
+            color: #000000 !important;
+          }
 
-          style.textContent = `
           * {
             color: #000000 !important;
+            border-color: #d1d5db !important;
             box-shadow: none !important;
             text-shadow: none !important;
-            outline-color: #cccccc !important;
-          }
-
-          body {
-            background-color: #ffffff !important;
+            outline-color: #d1d5db !important;
           }
 
           img {
@@ -82,12 +234,6 @@ export function TierList({ allPokemon }: TierListProps) {
           .bg-accent,
           .hover\\:bg-accent\\/50 {
             background-color: #ffffff !important;
-          }
-
-          .border,
-          .border-border,
-          .border-dashed {
-            border-color: #cccccc !important;
           }
 
           .bg-red-500,
@@ -119,70 +265,41 @@ export function TierList({ allPokemon }: TierListProps) {
             background-color: #3b82f6 !important;
             color: #ffffff !important;
           }
-
-          .bg-purple-500,
-          .bg-purple-600 {
-            background-color: #a855f7 !important;
-            color: #ffffff !important;
-          }
         `;
 
-          clonedDoc.head.appendChild(style);
+          clonedDoc.head.appendChild(rootStyle);
+
+          const clonedTierList = clonedDoc.querySelector(
+            "[data-export-tier-list='true']"
+          ) as HTMLElement | null;
+
+          if (clonedTierList) {
+            clonedTierList.style.width = '1100px';
+            clonedTierList.style.maxWidth = '1100px';
+            clonedTierList.style.backgroundColor = '#ffffff';
+            clonedTierList.style.color = '#000000';
+          }
         },
       });
 
-      const imgData = canvas.toDataURL('image/png');
+      const image = canvas.toDataURL('image/png');
 
-      const pdf = new jsPDF('l', 'mm', 'a4');
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pdfHeight;
-
-      while (heightLeft > 0) {
-        position -= pdfHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight;
-      }
-
-      pdf.save(`pokemon-tier-list-${new Date().getTime()}.pdf`);
+      const link = document.createElement('a');
+      link.href = image;
+      link.download = `pokemon-tier-list-${new Date().getTime()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      console.error('Error generating image:', error);
     } finally {
       setIsExporting(false);
     }
   };
 
-  // Nuevo estado para el término de búsqueda de Pokémon sin clasificar
-  const [unrankedSearchTerm, setUnrankedSearchTerm] = useState('');
-
-  useEffect(() => {
-    localStorage.setItem('pokemon-tier-list', JSON.stringify(tiers));
-  }, [tiers]);
-
-  const assignedIds = Object.values(tiers).flat(); // IDs de todos los Pokémon ya clasificados
-  const filteredUnrankedPokemon = React.useMemo(() => {
-    return allPokemon
-      .filter((p) => !assignedIds.includes(p.id))
-      .filter(
-        (p) =>
-          p.name.toLowerCase().includes(unrankedSearchTerm.toLowerCase()) ||
-          p.id.toString().includes(unrankedSearchTerm)
-      );
-  }, [allPokemon, assignedIds, unrankedSearchTerm]);
-
-  const onDragStart = (e: React.DragEvent, pokemonId: number, sourceTier: string | null) => {
-    e.dataTransfer.setData('pokemonId', pokemonId.toString());
-    e.dataTransfer.setData('sourceTier', sourceTier || 'unranked');
+  const onDragStart = (event: React.DragEvent, pokemonId: number, sourceTier: string | null) => {
+    event.dataTransfer.setData('pokemonId', pokemonId.toString());
+    event.dataTransfer.setData('sourceTier', sourceTier || 'unranked');
   };
 
   const movePokemon = (pokemonId: number, sourceTier: string | null, targetTier: string | null) => {
@@ -191,12 +308,10 @@ export function TierList({ allPokemon }: TierListProps) {
     setTiers((prev) => {
       const newTiers = { ...prev };
 
-      // Eliminar de la fuente
       if (sourceTier && sourceTier !== 'unranked') {
         newTiers[sourceTier] = newTiers[sourceTier].filter((id) => id !== pokemonId);
       }
 
-      // Añadir al destino
       if (targetTier && targetTier !== 'unranked') {
         if (!newTiers[targetTier].includes(pokemonId)) {
           newTiers[targetTier] = [...newTiers[targetTier], pokemonId];
@@ -205,21 +320,26 @@ export function TierList({ allPokemon }: TierListProps) {
 
       return newTiers;
     });
+
     setSelectedItem(null);
   };
 
-  const onDrop = (e: React.DragEvent, targetTier: string | null) => {
-    e.preventDefault();
-    const pokemonId = parseInt(e.dataTransfer.getData('pokemonId'));
+  const onDrop = (event: React.DragEvent, targetTier: string | null) => {
+    event.preventDefault();
+
+    const pokemonId = Number(event.dataTransfer.getData('pokemonId'));
+
     const sourceTier =
-      e.dataTransfer.getData('sourceTier') === 'unranked'
+      event.dataTransfer.getData('sourceTier') === 'unranked'
         ? null
-        : e.dataTransfer.getData('sourceTier');
+        : event.dataTransfer.getData('sourceTier');
+
     movePokemon(pokemonId, sourceTier, targetTier);
   };
 
-  const handlePokemonClick = (e: React.MouseEvent, id: number, sourceTier: string | null) => {
-    e.stopPropagation();
+  const handlePokemonClick = (event: React.MouseEvent, id: number, sourceTier: string | null) => {
+    event.stopPropagation();
+
     if (selectedItem?.id === id) {
       setSelectedItem(null);
     } else {
@@ -233,13 +353,12 @@ export function TierList({ allPokemon }: TierListProps) {
     }
   };
 
-  const onDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
+  const onDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
   };
 
   return (
     <div className="flex flex-col lg:flex-row gap-8">
-      {/* Columna Izquierda: Filas de Tiers */}
       <div className="flex-1 flex flex-col gap-4">
         <div className="flex justify-end">
           <Button onClick={handleExport} disabled={isExporting} className="flex gap-2 items-center">
@@ -248,18 +367,21 @@ export function TierList({ allPokemon }: TierListProps) {
             ) : (
               <Download className="w-4 h-4" />
             )}
-            {t('tiers.exportPDF')}
+
+            {t('tiers.exportPNG')}
           </Button>
         </div>
+
         <div
           ref={tierListRef}
+          data-export-tier-list="true"
           className="grid gap-2 bg-border border border-border rounded-xl overflow-hidden shadow-xl"
         >
           {TIER_CONFIG.map((tier) => (
             <div
               key={tier.id}
               onDragOver={onDragOver}
-              onDrop={(e) => onDrop(e, tier.id)}
+              onDrop={(event) => onDrop(event, tier.id)}
               onClick={() => handleContainerClick(tier.id)}
               className={`flex min-h-[100px] bg-card transition-all hover:bg-accent/50 ${
                 selectedItem && selectedItem.sourceTier !== tier.id
@@ -272,16 +394,28 @@ export function TierList({ allPokemon }: TierListProps) {
               >
                 {tier.id}
               </div>
+
               <div className="flex-1 p-2 flex flex-wrap gap-2 content-start">
                 {tiers[tier.id].map((id) => {
-                  const pokemon = allPokemon.find((p) => p.id === id);
-                  if (!pokemon) return null; // Esto no debería ocurrir si allPokemon es completo
+                  const pokemon = allPokemon.find((item) => item.id === id);
+
+                  if (!pokemon) {
+                    return (
+                      <div
+                        key={id}
+                        className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-muted border border-border flex items-center justify-center"
+                      >
+                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                      </div>
+                    );
+                  }
+
                   return (
                     <div
                       key={id}
                       draggable
-                      onDragStart={(e) => onDragStart(e, id, tier.id)}
-                      onClick={(e) => handlePokemonClick(e, id, tier.id)}
+                      onDragStart={(event) => onDragStart(event, id, tier.id)}
+                      onClick={(event) => handlePokemonClick(event, id, tier.id)}
                       className={`group relative cursor-grab active:cursor-grabbing transform transition-all hover:scale-110 ${
                         selectedItem?.id === id
                           ? 'ring-4 ring-primary scale-110 z-10 rounded-lg shadow-lg'
@@ -289,8 +423,8 @@ export function TierList({ allPokemon }: TierListProps) {
                       }`}
                     >
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        onClick={(event) => {
+                          event.stopPropagation();
                           movePokemon(id, tier.id, null);
                         }}
                         className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:bg-red-600 sm:p-1"
@@ -298,6 +432,7 @@ export function TierList({ allPokemon }: TierListProps) {
                       >
                         <X className="w-3 h-3" />
                       </button>
+
                       <ImageWithFallback
                         src={pokemon.sprite}
                         alt={pokemon.name}
@@ -312,55 +447,71 @@ export function TierList({ allPokemon }: TierListProps) {
         </div>
       </div>
 
-      {/* Columna Derecha: Pool de Pokémon sin clasificar con buscador */}
       <div className="w-full lg:w-96 bg-card border border-border rounded-2xl p-4 sm:p-6 shadow-md flex-shrink-0 flex flex-col">
         <div className="mb-4">
           <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
-            <span className="w-3 h-3 bg-primary rounded-full animate-pulse"></span>
+            <span className="w-3 h-3 bg-primary rounded-full animate-pulse" />
             {t('tiers.unranked')}
           </h3>
-          {/* Integración del SearchBar */}
+
           <SearchBar value={unrankedSearchTerm} onChange={setUnrankedSearchTerm} />
         </div>
 
-        {/* Contenedor scrollable para los Pokémon sin clasificar */}
         <div
+          ref={unrankedScrollRef}
           onDragOver={onDragOver}
-          onDrop={(e) => onDrop(e, null)}
+          onDrop={(event) => onDrop(event, null)}
           onClick={() => handleContainerClick(null)}
-          className={`flex flex-wrap gap-2 min-h-[150px] p-4 bg-muted/50 rounded-xl border-2 border-dashed border-border transition-all hover:border-primary/50 flex-1 overflow-y-auto max-h-[calc(100vh-250px)] ${
+          className={`flex flex-wrap gap-2 min-h-[250px] p-4 bg-muted/50 rounded-xl border-2 border-dashed border-border transition-all hover:border-primary/50 flex-1 overflow-y-auto max-h-[calc(100vh-250px)] ${
             selectedItem && selectedItem.sourceTier !== null ? 'border-primary/50 bg-primary/5' : ''
           }`}
         >
-          {filteredUnrankedPokemon.length === 0 ? (
+          {filteredUnrankedPokemon.length === 0 && !hasMore ? (
             <p className="text-muted-foreground text-center w-full py-10 italic">
-              {unrankedSearchTerm ? t('app.noPokemonFound') : t('tiers.allPokemonClassified')}{' '}
-              {/* Mensaje condicional */}
+              {unrankedSearchTerm ? t('app.noPokemonFound') : t('tiers.allPokemonClassified')}
             </p>
           ) : (
-            filteredUnrankedPokemon.map((pokemon) => (
-              <div
-                key={pokemon.id}
-                draggable
-                onDragStart={(e) => onDragStart(e, pokemon.id, null)}
-                onClick={(e) => handlePokemonClick(e, pokemon.id, null)}
-                className={`cursor-grab active:cursor-grabbing group relative transform transition-all hover:scale-110 ${
-                  selectedItem?.id === pokemon.id
-                    ? 'ring-4 ring-primary scale-110 z-10 rounded-lg shadow-lg'
-                    : ''
-                }`}
-                title={pokemon.name}
-              >
-                <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-[10px] font-bold px-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                  #{pokemon.id}
+            <>
+              {filteredUnrankedPokemon.map((pokemon) => (
+                <div
+                  key={pokemon.id}
+                  draggable
+                  onDragStart={(event) => onDragStart(event, pokemon.id, null)}
+                  onClick={(event) => handlePokemonClick(event, pokemon.id, null)}
+                  className={`cursor-grab active:cursor-grabbing group relative transform transition-all hover:scale-110 ${
+                    selectedItem?.id === pokemon.id
+                      ? 'ring-4 ring-primary scale-110 z-10 rounded-lg shadow-lg'
+                      : ''
+                  }`}
+                  title={pokemon.name}
+                >
+                  <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-[10px] font-bold px-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    #{pokemon.id}
+                  </div>
+
+                  <ImageWithFallback
+                    src={pokemon.sprite}
+                    alt={pokemon.name}
+                    className="w-12 h-12 sm:w-16 sm:h-16 object-contain bg-background rounded-lg border border-border group-hover:border-primary transition-colors shadow-sm"
+                  />
                 </div>
-                <ImageWithFallback
-                  src={pokemon.sprite}
-                  alt={pokemon.name}
-                  className="w-12 h-12 sm:w-16 sm:h-16 object-contain bg-background rounded-lg border border-border group-hover:border-primary transition-colors shadow-sm"
-                />
-              </div>
-            ))
+              ))}
+
+              {hasMore && (
+                <div ref={loadMoreRef} className="w-full flex justify-center items-center py-6">
+                  {loadingMore ? (
+                    <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>{t('app.loading') || 'Loading...'}</span>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      {t('app.scrollToLoadMore') || 'Scroll to load more'}
+                    </span>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

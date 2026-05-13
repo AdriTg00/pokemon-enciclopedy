@@ -40,7 +40,8 @@
     "allPokemonClassified": "Todos los Pokémon han sido clasificados",
     "instructions": "Arrastra los Pokémon a los niveles para crear tu lista",
     "exportPDF": "Exportar PDF",
-    "deletePrompt": "Arrastre aquí para eliminar"
+    "deletePrompt": "Arrastre aquí para eliminar",
+    "exportPNG": "Exportar PNG"
   },
   "types": {
     "normal": "Normal",

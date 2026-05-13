@@ -38,7 +38,8 @@
     "d": "D Tier",
     "unranked": "Unranked",
     "allPokemonClassified": "All Pokémon have been classified",
-    "exportPDF": "Export PDF"
+    "exportPDF": "Export PDF",
+    "exportPNG": "Export PNG"
   },
   "types": {
     "normal": "Normal",
