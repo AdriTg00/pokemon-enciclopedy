@@ -30,7 +30,8 @@ export default function App() {
     const loadInitialPokemon = async () => {
       try {
         setLoading(true);
-        const results = await fetchPokemonRange(1, 151);
+        // Cargamos todas las generaciones (hasta el 1025 que es el final de la Gen IX)
+        const results = await fetchPokemonRange(1, 1025);
         setPokemonList(results);
       } catch (error) {
         console.error("Error fetching Pokemon:", error);

@@ -36,7 +36,8 @@
     "c": "C Tier",
     "d": "D Tier",
     "unranked": "Unranked",
-    "allPokemonClassified": "All Pokémon have been classified"
+    "allPokemonClassified": "All Pokémon have been classified",
+    "exportPDF": "Export PDF"
   },
   "types": {
     "normal": "Normal", "fire": "Fire", "water": "Water", "electric": "Electric", "grass": "Grass", "ice": "Ice", "fighting": "Fighting", "poison": "Poison", "ground": "Ground", "flying": "Flying", "psychic": "Psychic", "bug": "Bug", "rock": "Rock", "ghost": "Ghost", "dragon": "Dragon", "dark": "Dark", "steel": "Steel", "fairy": "Fairy"
