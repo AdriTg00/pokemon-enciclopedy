@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PokéDex</string>
+    <string name="title_activity_main">PokéDex</string>
+    <string name="package_name">com.adriantarancon.pokedex</string>
+    <string name="custom_url_scheme">com.adriantarancon.pokedex</string>
+</resources>
