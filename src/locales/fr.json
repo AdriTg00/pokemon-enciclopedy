@@ -1,0 +1,43 @@
+{
+  "app": {
+    "title": "PokéDex",
+    "searchPlaceholder": "Rechercher un Pokémon...",
+    "showing": "Affichage de {{count}} Pokémon",
+    "noPokemonFound": "Aucun Pokémon trouvé",
+    "tryAdjustingFilters": "Essayez de modifier les filtres",
+    "imageError": "Erreur de chargement de l'image"
+  },
+  "filters": {
+    "generation": "Génération",
+    "type": "Type",
+    "all": "Tous"
+  },
+  "pokemonDetail": {
+    "height": "Taille",
+    "weight": "Poids",
+    "abilities": "Capacités",
+    "baseStats": "Statistiques de base"
+  },
+  "theme": {
+    "dark": "Sombre",
+    "light": "Clair"
+  },
+  "language": {
+    "spanish": "Espagnol",
+    "english": "Anglais",
+    "french": "Français"
+  },
+  "types": {
+    "normal": "Normal", "fire": "Feu", "water": "Eau", "electric": "Électrique", "grass": "Plante", "ice": "Glace", "fighting": "Combat", "poison": "Poison", "ground": "Sol", "flying": "Vol", "psychic": "Psy", "bug": "Insecte", "rock": "Roche", "ghost": "Spectre", "dragon": "Dragon", "dark": "Ténèbres", "steel": "Acier", "fairy": "Fée"
+  },
+  "stats": {
+    "hp": "PV", "attack": "Attaque", "defense": "Défense", "specialAttack": "Att. Spé.", "specialDefense": "Déf. Spé.", "speed": "Vitesse"
+  },
+  "abilities": {
+    "overgrow": "Engrais",
+    "blaze": "Brasier",
+    "torrent": "Torrent",
+    "shield-dust": "Écran Poudre",
+    "static": "Statik"
+  }
+}

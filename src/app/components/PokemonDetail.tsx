@@ -1,7 +1,9 @@
+import React from "react";
 import { X } from "lucide-react";
 import { motion } from "motion/react";
 import { Button } from "@/app/components/ui/button";
 import { Progress } from "@/app/components/ui/progress";
+import { useTranslation } from "react-i18next";
 
 interface PokemonStats {
   hp: number;
@@ -20,7 +22,10 @@ interface PokemonDetailData {
   stats: PokemonStats;
   height: number;
   weight: number;
-  abilities: string[];
+  abilities: {
+    name: string;
+    description: string;
+  }[];
 }
 
 interface PokemonDetailProps {
@@ -50,16 +55,17 @@ const typeColors: { [key: string]: string } = {
 };
 
 export function PokemonDetail({ pokemon, onClose }: PokemonDetailProps) {
+  const { t } = useTranslation();
   const primaryType = pokemon.types[0];
   const bgColor = typeColors[primaryType] || "#A8A878";
 
   const statData = [
-    { name: "HP", value: pokemon.stats.hp, max: 255 },
-    { name: "Attack", value: pokemon.stats.attack, max: 200 },
-    { name: "Defense", value: pokemon.stats.defense, max: 200 },
-    { name: "Sp. Atk", value: pokemon.stats.specialAttack, max: 200 },
-    { name: "Sp. Def", value: pokemon.stats.specialDefense, max: 200 },
-    { name: "Speed", value: pokemon.stats.speed, max: 200 },
+    { name: "hp", value: pokemon.stats.hp, max: 255 },
+    { name: "attack", value: pokemon.stats.attack, max: 200 },
+    { name: "defense", value: pokemon.stats.defense, max: 200 },
+    { name: "specialAttack", value: pokemon.stats.specialAttack, max: 200 },
+    { name: "specialDefense", value: pokemon.stats.specialDefense, max: 200 },
+    { name: "speed", value: pokemon.stats.speed, max: 200 },
   ];
 
   return (
@@ -76,7 +82,7 @@ export function PokemonDetail({ pokemon, onClose }: PokemonDetailProps) {
         exit={{ y: "100%", opacity: 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl"
+        className="bg-card text-card-foreground border border-border rounded-t-3xl sm:rounded-3xl w-full sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl transition-colors"
       >
         <div
           className="p-6 sm:p-8 rounded-t-3xl relative"
@@ -97,9 +103,11 @@ export function PokemonDetail({ pokemon, onClose }: PokemonDetailProps) {
             <div className="text-white/60 font-bold text-2xl sm:text-3xl mb-2">
               #{pokemon.id.toString().padStart(3, "0")}
             </div>
+
             <h2 className="text-white font-bold text-3xl sm:text-4xl capitalize mb-4">
               {pokemon.name}
             </h2>
+
             <div className="flex gap-2 justify-center mb-4 sm:mb-6">
               {pokemon.types.map((type) => (
                 <span
@@ -107,10 +115,11 @@ export function PokemonDetail({ pokemon, onClose }: PokemonDetailProps) {
                   className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-sm sm:text-base font-semibold text-white capitalize shadow-lg"
                   style={{ backgroundColor: typeColors[type] }}
                 >
-                  {type}
+                  {t(`types.${type.toLowerCase()}`, { defaultValue: type })}
                 </span>
               ))}
             </div>
+
             <img
               src={pokemon.sprite}
               alt={pokemon.name}
@@ -121,43 +130,70 @@ export function PokemonDetail({ pokemon, onClose }: PokemonDetailProps) {
 
         <div className="p-6 sm:p-8">
           <div className="grid grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
-            <div className="bg-gray-50 rounded-xl p-3 sm:p-4 text-center">
-              <div className="text-gray-500 text-xs sm:text-sm mb-1">Height</div>
-              <div className="font-bold text-lg sm:text-xl">{pokemon.height / 10} m</div>
+            <div className="bg-muted text-foreground border border-border rounded-xl p-3 sm:p-4 text-center transition-colors">
+              <div className="text-muted-foreground text-xs sm:text-sm mb-1">
+                {t("pokemonDetail.height")}
+              </div>
+              <div className="font-bold text-lg sm:text-xl">
+                {pokemon.height / 10} m
+              </div>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3 sm:p-4 text-center">
-              <div className="text-gray-500 text-xs sm:text-sm mb-1">Weight</div>
-              <div className="font-bold text-lg sm:text-xl">{pokemon.weight / 10} kg</div>
+
+            <div className="bg-muted text-foreground border border-border rounded-xl p-3 sm:p-4 text-center transition-colors">
+              <div className="text-muted-foreground text-xs sm:text-sm mb-1">
+                {t("pokemonDetail.weight")}
+              </div>
+              <div className="font-bold text-lg sm:text-xl">
+                {pokemon.weight / 10} kg
+              </div>
             </div>
           </div>
 
           <div className="mb-6 sm:mb-8">
-            <h3 className="font-bold text-lg sm:text-xl mb-3 sm:mb-4">Abilities</h3>
-            <div className="flex gap-2 flex-wrap">
+            <h3 className="font-bold text-lg sm:text-xl mb-3 sm:mb-4 text-foreground">
+              {t("pokemonDetail.abilities")}
+            </h3>
+
+            <div className="space-y-3">
               {pokemon.abilities.map((ability) => (
-                <span
-                  key={ability}
-                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-100 rounded-lg capitalize font-medium text-sm sm:text-base"
+                <div 
+                  key={ability.name}
+                  className="p-3 sm:p-4 bg-muted text-foreground border border-border rounded-xl transition-colors"
                 >
-                  {ability}
-                </span>
+                  <div className="font-bold capitalize text-sm sm:text-base mb-1">
+                    {t(`abilities.${ability.name.toLowerCase().replace(/\s+/g, "-")}`, { defaultValue: ability.name })}
+                  </div>
+                  {ability.description && (
+                    <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
+                      {ability.description}
+                    </p>
+                  )}
+                </div>
               ))}
             </div>
           </div>
 
           <div>
-            <h3 className="font-bold text-lg sm:text-xl mb-3 sm:mb-4">Base Stats</h3>
+            <h3 className="font-bold text-lg sm:text-xl mb-3 sm:mb-4 text-foreground">
+              {t("pokemonDetail.baseStats")}
+            </h3>
+
             <div className="space-y-3">
               {statData.map((stat) => (
                 <div key={stat.name}>
                   <div className="flex justify-between mb-1">
-                    <span className="font-medium text-gray-700 text-sm sm:text-base">
-                      {stat.name}
+                    <span className="font-medium text-foreground text-sm sm:text-base">
+                      {t(`stats.${stat.name.toLowerCase()}`, { defaultValue: stat.name })}
                     </span>
-                    <span className="font-bold text-sm sm:text-base" style={{ color: bgColor }}>
+
+                    <span
+                      className="font-bold text-sm sm:text-base"
+                      style={{ color: bgColor }}
+                    >
                       {stat.value}
                     </span>
                   </div>
+
                   <Progress
                     value={(stat.value / stat.max) * 100}
                     className="h-2"

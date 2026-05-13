@@ -1,0 +1,43 @@
+{
+  "app": {
+    "title": "PokéDex",
+    "searchPlaceholder": "Buscar Pokémon...",
+    "showing": "Mostrando {{count}} Pokémon",
+    "noPokemonFound": "No se encontraron Pokémon",
+    "tryAdjustingFilters": "Prueba a cambiar los filtros",
+    "imageError": "Error al cargar la imagen"
+  },
+  "filters": {
+    "generation": "Generación",
+    "type": "Tipo",
+    "all": "Todos"
+  },
+  "pokemonDetail": {
+    "height": "Altura",
+    "weight": "Peso",
+    "abilities": "Habilidades",
+    "baseStats": "Estadísticas base"
+  },
+  "theme": {
+    "dark": "Oscuro",
+    "light": "Claro"
+  },
+  "language": {
+    "spanish": "Español",
+    "english": "Inglés",
+    "french": "Francés"
+  },
+  "types": {
+    "normal": "Normal", "fire": "Fuego", "water": "Agua", "electric": "Eléctrico", "grass": "Planta", "ice": "Hielo", "fighting": "Lucha", "poison": "Veneno", "ground": "Tierra", "flying": "Volador", "psychic": "Psíquico", "bug": "Bicho", "rock": "Roca", "ghost": "Fantasma", "dragon": "Dragón", "dark": "Siniestro", "steel": "Acero", "fairy": "Hada"
+  },
+  "stats": {
+    "hp": "PS", "attack": "Ataque", "defense": "Defensa", "specialAttack": "At. Esp.", "specialDefense": "Def. Esp.", "speed": "Velocidad"
+  },
+  "abilities": {
+    "overgrow": "Espesura",
+    "blaze": "Mar Llamas",
+    "torrent": "Torrente",
+    "shield-dust": "Polvo Escudo",
+    "static": "Electricidad Estática"
+  }
+}

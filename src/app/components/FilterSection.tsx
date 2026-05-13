@@ -1,4 +1,5 @@
 import { Button } from "@/app/components/ui/button";
+import { useTranslation } from "react-i18next";
 
 interface FilterSectionProps {
   selectedGeneration: number | null;
@@ -67,10 +68,11 @@ export function FilterSection({
   onGenerationChange,
   onTypeChange,
 }: FilterSectionProps) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3">Generation</h3>
+        <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3">{t("filters.generation")}</h3>
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 sm:pb-0">
           <div className="flex sm:flex-wrap gap-2 min-w-max sm:min-w-0">
             <Button
@@ -79,7 +81,7 @@ export function FilterSection({
               className="rounded-full text-sm whitespace-nowrap flex-shrink-0"
               size="sm"
             >
-              All
+              {t("filters.all")}
             </Button>
             {generations.map((gen) => (
               <Button
@@ -97,7 +99,7 @@ export function FilterSection({
       </div>
 
       <div>
-        <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3">Type</h3>
+        <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3">{t("filters.type")}</h3>
         <div className="overflow-x-auto -mx-4 px-6 sm:mx-0 sm:px-2 py-3">
           <div className="flex sm:flex-wrap gap-3 min-w-max sm:min-w-0">
             <Button
@@ -106,7 +108,7 @@ export function FilterSection({
               className="rounded-full text-sm whitespace-nowrap flex-shrink-0"
               size="sm"
             >
-              All
+              {t("filters.all")}
             </Button>
             {types.map((type) => (
               <button
@@ -119,7 +121,7 @@ export function FilterSection({
                 }`}
                 style={{ backgroundColor: typeColors[type] }}
               >
-                {type}
+                {t(`types.${type}`)}
               </button>
             ))}
           </div>

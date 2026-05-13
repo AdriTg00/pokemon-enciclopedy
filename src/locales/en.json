@@ -1,0 +1,43 @@
+{
+  "app": {
+    "title": "PokéDex",
+    "searchPlaceholder": "Search Pokémon...",
+    "showing": "Showing {{count}} Pokémon",
+    "noPokemonFound": "No Pokémon found",
+    "tryAdjustingFilters": "Try adjusting the filters",
+    "imageError": "Error loading image"
+  },
+  "filters": {
+    "generation": "Generation",
+    "type": "Type",
+    "all": "All"
+  },
+  "pokemonDetail": {
+    "height": "Height",
+    "weight": "Weight",
+    "abilities": "Abilities",
+    "baseStats": "Base stats"
+  },
+  "theme": {
+    "dark": "Dark",
+    "light": "Light"
+  },
+  "language": {
+    "spanish": "Spanish",
+    "english": "English",
+    "french": "French"
+  },
+  "types": {
+    "normal": "Normal", "fire": "Fire", "water": "Water", "electric": "Electric", "grass": "Grass", "ice": "Ice", "fighting": "Fighting", "poison": "Poison", "ground": "Ground", "flying": "Flying", "psychic": "Psychic", "bug": "Bug", "rock": "Rock", "ghost": "Ghost", "dragon": "Dragon", "dark": "Dark", "steel": "Steel", "fairy": "Fairy"
+  },
+  "stats": {
+    "hp": "HP", "attack": "Attack", "defense": "Defense", "specialAttack": "Sp. Atk", "specialDefense": "Sp. Def", "speed": "Speed"
+  },
+  "abilities": {
+    "overgrow": "Overgrow",
+    "blaze": "Blaze",
+    "torrent": "Torrent",
+    "shield-dust": "Shield Dust",
+    "static": "Static"
+  }
+}
