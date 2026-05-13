@@ -38,7 +38,8 @@
     "unranked": "Pokémon sin clasificar",
     "allPokemonClassified": "Todos los Pokémon han sido clasificados",
     "instructions": "Arrastra los Pokémon a los niveles para crear tu lista",
-    "exportPDF": "Exportar PDF"
+    "exportPDF": "Exportar PDF",
+    "deletePrompt": "Arrastre aquí para eliminar"
   },
   "types": {
     "normal": "Normal",

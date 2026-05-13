@@ -97,7 +97,7 @@ export default function App() {
       {/* Header */}
       <header className="bg-card text-card-foreground border-b border-border shadow-md sticky top-0 z-40 transition-colors">
         <div className="px-4 py-4 sm:py-6">
-          <div className="relative flex items-center justify-center mb-3 sm:mb-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
             <h1
               className="
           text-4xl sm:text-6xl font-black tracking-wide
@@ -109,12 +109,12 @@ export default function App() {
               PokéDex
             </h1>
 
-            <div className="absolute right-0 flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <LanguageToggle />
               <ThemeToggle />
               <button
                 onClick={() => setView(view === "dex" ? "tierlist" : "dex")}
-                className="rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-md transition-transform hover:scale-105"
+                className="rounded-full bg-primary px-3 py-2 sm:px-4 text-xs sm:text-sm font-bold text-primary-foreground shadow-md transition-transform hover:scale-105 whitespace-nowrap"
               >
                 {view === "dex" ? t("app.viewTierList") : t("app.backToDex")}
               </button>

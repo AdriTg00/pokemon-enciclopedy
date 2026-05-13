@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { Pokemon } from "@/types/pokemon";
 import { ImageWithFallback } from "./ImageWithFallback";
 import { SearchBar } from "./SearchBar"; // Importamos el componente SearchBar
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, X } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 
 interface TierListProps {
@@ -22,6 +22,7 @@ export function TierList({ allPokemon }: TierListProps) {
   const { t } = useTranslation();
   const tierListRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<{ id: number; sourceTier: string | null } | null>(null);
   const [tiers, setTiers] = useState<Record<string, number[]>>(() => {
     const saved = localStorage.getItem("pokemon-tier-list");
     return saved ? JSON.parse(saved) : { S: [], A: [], B: [], C: [], D: [] };
@@ -70,7 +71,7 @@ export function TierList({ allPokemon }: TierListProps) {
           }
 
           .bg-yellow-500,
-          .bg-yellow-600 {
+          .bg-yellow-600 {http://localhost:5173/
             background-color: #eab308 !important;
           }
 
@@ -127,26 +128,49 @@ export function TierList({ allPokemon }: TierListProps) {
     e.dataTransfer.setData("sourceTier", sourceTier || "unranked");
   };
 
+  const movePokemon = (pokemonId: number, sourceTier: string | null, targetTier: string | null) => {
+    if (sourceTier === targetTier) return;
+
+    setTiers((prev) => {
+      const newTiers = { ...prev };
+
+      // Eliminar de la fuente
+      if (sourceTier && sourceTier !== "unranked") {
+        newTiers[sourceTier] = newTiers[sourceTier].filter((id) => id !== pokemonId);
+      }
+
+      // Añadir al destino
+      if (targetTier && targetTier !== "unranked") {
+        if (!newTiers[targetTier].includes(pokemonId)) {
+          newTiers[targetTier] = [...newTiers[targetTier], pokemonId];
+        }
+      }
+
+      return newTiers;
+    });
+    setSelectedItem(null);
+  };
+
   const onDrop = (e: React.DragEvent, targetTier: string | null) => {
     e.preventDefault();
     const pokemonId = parseInt(e.dataTransfer.getData("pokemonId"));
-    const sourceTier = e.dataTransfer.getData("sourceTier");
+    const sourceTier = e.dataTransfer.getData("sourceTier") === "unranked" ? null : e.dataTransfer.getData("sourceTier");
+    movePokemon(pokemonId, sourceTier, targetTier);
+  };
 
-    if (sourceTier === targetTier) return;
-
-    const newTiers = { ...tiers };
-
-    // Eliminar de la fuente si estaba en un tier
-    if (sourceTier !== "unranked") {
-      newTiers[sourceTier] = newTiers[sourceTier].filter((id) => id !== pokemonId);
+  const handlePokemonClick = (e: React.MouseEvent, id: number, sourceTier: string | null) => {
+    e.stopPropagation();
+    if (selectedItem?.id === id) {
+      setSelectedItem(null);
+    } else {
+      setSelectedItem({ id, sourceTier });
     }
+  };
 
-    // Añadir al destino si es un tier
-    if (targetTier) {
-      newTiers[targetTier] = [...newTiers[targetTier], pokemonId];
+  const handleContainerClick = (targetTier: string | null) => {
+    if (selectedItem) {
+      movePokemon(selectedItem.id, selectedItem.sourceTier, targetTier);
     }
-
-    setTiers(newTiers);
   };
 
   const onDragOver = (e: React.DragEvent) => {
@@ -173,7 +197,10 @@ export function TierList({ allPokemon }: TierListProps) {
               key={tier.id}
               onDragOver={onDragOver}
               onDrop={(e) => onDrop(e, tier.id)}
-              className="flex min-h-[100px] bg-card transition-colors hover:bg-accent/50"
+              onClick={() => handleContainerClick(tier.id)}
+              className={`flex min-h-[100px] bg-card transition-all hover:bg-accent/50 ${
+                selectedItem && selectedItem.sourceTier !== tier.id ? "ring-2 ring-primary/30 bg-primary/5" : ""
+              }`}
             >
               <div className={`${tier.color} w-20 sm:w-32 flex items-center justify-center text-white font-black text-2xl sm:text-4xl shadow-inner`}>
                 {tier.id}
@@ -187,8 +214,21 @@ export function TierList({ allPokemon }: TierListProps) {
                       key={id}
                       draggable
                       onDragStart={(e) => onDragStart(e, id, tier.id)}
-                      className="cursor-grab active:cursor-grabbing transform transition-transform hover:scale-110"
+                      onClick={(e) => handlePokemonClick(e, id, tier.id)}
+                      className={`group relative cursor-grab active:cursor-grabbing transform transition-all hover:scale-110 ${
+                        selectedItem?.id === id ? "ring-4 ring-primary scale-110 z-10 rounded-lg shadow-lg" : ""
+                      }`}
                     >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          movePokemon(id, tier.id, null);
+                        }}
+                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:bg-red-600 sm:p-1"
+                        title="Remove"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
                       <ImageWithFallback
                         src={pokemon.sprite}
                         alt={pokemon.name}
@@ -218,7 +258,10 @@ export function TierList({ allPokemon }: TierListProps) {
         <div
           onDragOver={onDragOver}
           onDrop={(e) => onDrop(e, null)}
-          className="flex flex-wrap gap-2 min-h-[150px] p-4 bg-muted/50 rounded-xl border-2 border-dashed border-border transition-colors hover:border-primary/50 flex-1 overflow-y-auto max-h-[calc(100vh-250px)]" /* Altura máxima y scroll */
+          onClick={() => handleContainerClick(null)}
+          className={`flex flex-wrap gap-2 min-h-[150px] p-4 bg-muted/50 rounded-xl border-2 border-dashed border-border transition-all hover:border-primary/50 flex-1 overflow-y-auto max-h-[calc(100vh-250px)] ${
+            selectedItem && selectedItem.sourceTier !== null ? "border-primary/50 bg-primary/5" : ""
+          }`}
         >
           {filteredUnrankedPokemon.length === 0 ? (
             <p className="text-muted-foreground text-center w-full py-10 italic">
@@ -230,7 +273,10 @@ export function TierList({ allPokemon }: TierListProps) {
                 key={pokemon.id}
                 draggable
                 onDragStart={(e) => onDragStart(e, pokemon.id, null)}
-                className="cursor-grab active:cursor-grabbing group relative"
+                onClick={(e) => handlePokemonClick(e, pokemon.id, null)}
+                className={`cursor-grab active:cursor-grabbing group relative transform transition-all hover:scale-110 ${
+                  selectedItem?.id === pokemon.id ? "ring-4 ring-primary scale-110 z-10 rounded-lg shadow-lg" : ""
+                }`}
                 title={pokemon.name}
               >
                 <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-[10px] font-bold px-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10">
