@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -8,80 +8,203 @@ import { PokemonDetail } from "@/app/components/PokemonDetail";
 import { SearchBar } from "@/app/components/SearchBar";
 import { FilterSection } from "@/app/components/FilterSection";
 import { TierList } from "@/app/components/TierList";
-import type { Pokemon, PokemonDetail as PokemonDetailType } from "@/types/pokemon";
+import type {
+  Pokemon,
+  PokemonDetail as PokemonDetailType,
+} from "@/types/pokemon";
 import { GENERATION_RANGES } from "@/types/pokemon";
-import { fetchPokemonRange, fetchPokemonDetail } from "@/services/pokemonApi";
+import {
+  fetchPokemonRange,
+  fetchPokemonDetail,
+  fetchPokemonByIds,
+} from "@/services/pokemonApi";
+
+const PAGE_SIZE = 20;
+const TOTAL_POKEMON = 1024;
 
 export default function App() {
   const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
   const [view, setView] = useState<"dex" | "tierlist">("dex");
-  const [selectedPokemon, setSelectedPokemon] = useState<PokemonDetailType | null>(null);
+  const [selectedPokemon, setSelectedPokemon] =
+    useState<PokemonDetailType | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedGeneration, setSelectedGeneration] = useState<number | null>(null);
+  const [selectedGeneration, setSelectedGeneration] = useState<number | null>(
+    null
+  );
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextPokemonId, setNextPokemonId] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
   const { t, i18n } = useTranslation();
 
-
-
-
   useEffect(() => {
-    const loadInitialPokemon = async () => {
+    let cancelled = false;
+
+    const loadPokemon = async () => {
       try {
         setLoading(true);
-        // Cargamos todas las generaciones (hasta el 1025 que es el final de la Gen IX)
-        const results = await fetchPokemonRange(1, 1025);
-        setPokemonList(results);
-      } catch (error) {
-        console.error("Error fetching Pokemon:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadInitialPokemon();
-  }, []);
 
-  useEffect(() => {
-    if (selectedGeneration === null) return;
-    const loadGenerationPokemon = async () => {
-      const range = GENERATION_RANGES[selectedGeneration - 1];
-      const existingIds = new Set(pokemonList.map(p => p.id));
-      const needsLoading = [];
-      for (let i = range.start; i <= range.end; i++) {
-        if (!existingIds.has(i)) {
-          needsLoading.push(i);
+        if (selectedGeneration === null) {
+          const results = await fetchPokemonRange(1, PAGE_SIZE);
+
+          if (cancelled) return;
+
+          setPokemonList(results);
+          setNextPokemonId(PAGE_SIZE + 1);
+          setHasMore(PAGE_SIZE < TOTAL_POKEMON);
+          return;
+        }
+
+        const range = GENERATION_RANGES[selectedGeneration - 1];
+
+        const idsToLoad = Array.from(
+          { length: range.end - range.start + 1 },
+          (_, index) => range.start + index
+        );
+
+        const newPokemon = await fetchPokemonByIds(idsToLoad);
+
+        if (cancelled) return;
+
+        setPokemonList(newPokemon);
+        setNextPokemonId(1);
+        setHasMore(false);
+      } catch (error) {
+        console.error("Error fetching Pokémon:", error);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
         }
       }
-      if (needsLoading.length > 0) {
-        const newPokemon = await fetchPokemonRange(needsLoading[0], needsLoading[needsLoading.length - 1]);
-        setPokemonList(prev => [...prev, ...newPokemon].sort((a, b) => a.id - b.id));
-      }
     };
-    loadGenerationPokemon();
-  }, [selectedGeneration, pokemonList]);
+
+    loadPokemon();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedGeneration]);
+
+  const loadMorePokemon = useCallback(async () => {
+    if (
+      loading ||
+      loadingMore ||
+      !hasMore ||
+      selectedGeneration !== null ||
+      view !== "dex"
+    ) {
+      return;
+    }
+
+    try {
+      setLoadingMore(true);
+
+      const start = nextPokemonId;
+      const end = Math.min(start + PAGE_SIZE - 1, TOTAL_POKEMON);
+
+      const newPokemon = await fetchPokemonRange(start, end);
+
+      setPokemonList((prev) => {
+        const existingIds = new Set(prev.map((pokemon) => pokemon.id));
+
+        const mergedPokemon = [
+          ...prev,
+          ...newPokemon.filter((pokemon) => !existingIds.has(pokemon.id)),
+        ];
+
+        return mergedPokemon.sort((a, b) => a.id - b.id);
+      });
+
+      const nextId = end + 1;
+
+      setNextPokemonId(nextId);
+
+      if (nextId > TOTAL_POKEMON) {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error("Error loading more Pokémon:", error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [
+    loading,
+    loadingMore,
+    hasMore,
+    selectedGeneration,
+    view,
+    nextPokemonId,
+  ]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+
+    if (!target) return;
+    if (view !== "dex") return;
+    if (selectedGeneration !== null) return;
+    if (!hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const firstEntry = entries[0];
+
+        if (firstEntry.isIntersecting) {
+          loadMorePokemon();
+        }
+      },
+      {
+        root: null,
+        rootMargin: "250px",
+        threshold: 0.1,
+      }
+    );
+
+    observer.observe(target);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [view, selectedGeneration, hasMore, loadMorePokemon]);
 
   const filteredPokemon = useMemo(() => {
     let filtered = pokemonList;
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter((p) =>
-        p.name.toLowerCase().includes(term) ||
-        p.id.toString().includes(searchTerm)
+
+      filtered = filtered.filter(
+        (pokemon) =>
+          pokemon.name.toLowerCase().includes(term) ||
+          pokemon.id.toString().includes(searchTerm)
       );
     }
+
     if (selectedGeneration !== null) {
       const range = GENERATION_RANGES[selectedGeneration - 1];
-      filtered = filtered.filter((p) => p.id >= range.start && p.id <= range.end);
+
+      filtered = filtered.filter(
+        (pokemon) => pokemon.id >= range.start && pokemon.id <= range.end
+      );
     }
+
     if (selectedType) {
-      filtered = filtered.filter((p) => p.types.includes(selectedType));
+      filtered = filtered.filter((pokemon) =>
+        pokemon.types.includes(selectedType)
+      );
     }
+
     return filtered;
   }, [searchTerm, selectedGeneration, selectedType, pokemonList]);
 
   const handlePokemonClick = async (id: number) => {
     setLoadingDetail(true);
+
     try {
       const detail = await fetchPokemonDetail(id, i18n.language);
       setSelectedPokemon(detail);
@@ -94,17 +217,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-6 transition-colors">
-      {/* Header */}
       <header className="bg-card text-card-foreground border-b border-border shadow-md sticky top-0 z-40 transition-colors">
         <div className="px-4 py-4 sm:py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
             <h1
               className="
-          text-4xl sm:text-6xl font-black tracking-wide
-          text-red-600
-          drop-shadow-[3px_3px_0px_#facc15]
-          [-webkit-text-stroke:2px_#1e3a8a]
-        "
+                text-4xl sm:text-6xl font-black tracking-wide
+                text-red-600
+                drop-shadow-[3px_3px_0px_#facc15]
+                [-webkit-text-stroke:2px_#1e3a8a]
+              "
             >
               PokéDex
             </h1>
@@ -112,6 +234,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <LanguageToggle />
               <ThemeToggle />
+
               <button
                 onClick={() => setView(view === "dex" ? "tierlist" : "dex")}
                 className="rounded-full bg-primary px-3 py-2 sm:px-4 text-xs sm:text-sm font-bold text-primary-foreground shadow-md transition-transform hover:scale-105 whitespace-nowrap"
@@ -126,10 +249,10 @@ export default function App() {
           </div>
         </div>
       </header>
+
       <div className="px-3 sm:px-4 py-4 sm:py-8 max-w-7xl mx-auto">
         {view === "dex" ? (
           <>
-            {/* Filters */}
             <div className="mb-4 sm:mb-8 bg-card text-card-foreground border border-border rounded-2xl p-4 sm:p-6 shadow-md transition-colors">
               <FilterSection
                 selectedGeneration={selectedGeneration}
@@ -139,7 +262,6 @@ export default function App() {
               />
             </div>
 
-            {/* Pokemon Grid */}
             {loading ? (
               <div className="flex justify-center items-center h-64">
                 <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -161,6 +283,20 @@ export default function App() {
                     />
                   ))}
                 </div>
+
+                {selectedGeneration === null && hasMore && (
+                  <div
+                    ref={loadMoreRef}
+                    className="flex justify-center items-center py-8 min-h-20"
+                  >
+                    {loadingMore && (
+                      <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>{t("app.loading") || "Loading..."}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
 
@@ -180,7 +316,6 @@ export default function App() {
         )}
       </div>
 
-      {/* Detail Modal */}
       {selectedPokemon && !loadingDetail && (
         <PokemonDetail
           pokemon={selectedPokemon}

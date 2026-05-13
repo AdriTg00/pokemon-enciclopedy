@@ -1,30 +1,33 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useTranslation } from "react-i18next";
-import type { Pokemon } from "@/types/pokemon";
-import { ImageWithFallback } from "./ImageWithFallback";
-import { SearchBar } from "./SearchBar"; // Importamos el componente SearchBar
-import { Download, Loader2, X } from "lucide-react";
-import { Button } from "@/app/components/ui/button";
+import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { Pokemon } from '@/types/pokemon';
+import { ImageWithFallback } from './ImageWithFallback';
+import { SearchBar } from './SearchBar'; // Importamos el componente SearchBar
+import { Download, Loader2, X } from 'lucide-react';
+import { Button } from '@/app/components/ui/button';
 
 interface TierListProps {
   allPokemon: Pokemon[];
 }
 
 const TIER_CONFIG = [
-  { id: "S", color: "bg-red-500" },
-  { id: "A", color: "bg-orange-500" },
-  { id: "B", color: "bg-yellow-500" },
-  { id: "C", color: "bg-green-500" },
-  { id: "D", color: "bg-blue-500" },
+  { id: 'S', color: 'bg-red-500' },
+  { id: 'A', color: 'bg-orange-500' },
+  { id: 'B', color: 'bg-yellow-500' },
+  { id: 'C', color: 'bg-green-500' },
+  { id: 'D', color: 'bg-blue-500' },
 ];
 
 export function TierList({ allPokemon }: TierListProps) {
   const { t } = useTranslation();
   const tierListRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<{ id: number; sourceTier: string | null } | null>(null);
+  const [selectedItem, setSelectedItem] = useState<{
+    id: number;
+    sourceTier: string | null;
+  } | null>(null);
   const [tiers, setTiers] = useState<Record<string, number[]>>(() => {
-    const saved = localStorage.getItem("pokemon-tier-list");
+    const saved = localStorage.getItem('pokemon-tier-list');
     return saved ? JSON.parse(saved) : { S: [], A: [], B: [], C: [], D: [] };
   });
 
@@ -34,60 +37,93 @@ export function TierList({ allPokemon }: TierListProps) {
     setIsExporting(true);
 
     try {
-      const html2canvas = (await import("html2canvas")).default;
-      const { jsPDF } = await import("jspdf");
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
 
       const canvas = await html2canvas(tierListRef.current, {
         useCORS: true,
         allowTaint: true,
         scale: 2,
-        backgroundColor: "#ffffff",
+        backgroundColor: '#ffffff',
+        windowWidth: 1200,
 
         onclone: (clonedDoc) => {
-          const style = clonedDoc.createElement("style");
+          const clonedTierList = clonedDoc.querySelector(
+            "[data-export-tier-list='true']"
+          ) as HTMLElement | null;
+
+          if (clonedTierList) {
+            clonedTierList.style.width = '1100px';
+            clonedTierList.style.maxWidth = '1100px';
+          }
+
+          const style = clonedDoc.createElement('style');
 
           style.textContent = `
           * {
             color: #000000 !important;
-            background-color: #ffffff !important;
-            border-color: #cccccc !important;
             box-shadow: none !important;
             text-shadow: none !important;
             outline-color: #cccccc !important;
+          }
+
+          body {
+            background-color: #ffffff !important;
           }
 
           img {
             background-color: transparent !important;
           }
 
+          .bg-card,
+          .bg-background,
+          .bg-muted,
+          .bg-muted\\/50,
+          .bg-accent,
+          .hover\\:bg-accent\\/50 {
+            background-color: #ffffff !important;
+          }
+
+          .border,
+          .border-border,
+          .border-dashed {
+            border-color: #cccccc !important;
+          }
+
           .bg-red-500,
           .bg-red-600 {
             background-color: #ef4444 !important;
+            color: #ffffff !important;
           }
 
           .bg-orange-500,
           .bg-orange-600 {
             background-color: #f97316 !important;
+            color: #ffffff !important;
           }
 
           .bg-yellow-500,
-          .bg-yellow-600 {http://localhost:5173/
+          .bg-yellow-600 {
             background-color: #eab308 !important;
+            color: #ffffff !important;
           }
 
           .bg-green-500,
           .bg-green-600 {
             background-color: #22c55e !important;
+            color: #ffffff !important;
           }
 
           .bg-blue-500,
           .bg-blue-600 {
             background-color: #3b82f6 !important;
+            color: #ffffff !important;
           }
 
           .bg-purple-500,
           .bg-purple-600 {
             background-color: #a855f7 !important;
+            color: #ffffff !important;
           }
         `;
 
@@ -95,37 +131,58 @@ export function TierList({ allPokemon }: TierListProps) {
         },
       });
 
-      const imgData = canvas.toDataURL("image/png");
+      const imgData = canvas.toDataURL('image/png');
 
-      const pdf = new jsPDF("l", "mm", "a4");
+      const pdf = new jsPDF('l', 'mm', 'a4');
+
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pdfHeight = pdf.internal.pageSize.getHeight();
 
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfHeight;
+
+      while (heightLeft > 0) {
+        position -= pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+
       pdf.save(`pokemon-tier-list-${new Date().getTime()}.pdf`);
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      console.error('Error generating PDF:', error);
     } finally {
       setIsExporting(false);
     }
   };
 
   // Nuevo estado para el término de búsqueda de Pokémon sin clasificar
-  const [unrankedSearchTerm, setUnrankedSearchTerm] = useState("");
+  const [unrankedSearchTerm, setUnrankedSearchTerm] = useState('');
 
   useEffect(() => {
-    localStorage.setItem("pokemon-tier-list", JSON.stringify(tiers));
+    localStorage.setItem('pokemon-tier-list', JSON.stringify(tiers));
   }, [tiers]);
 
   const assignedIds = Object.values(tiers).flat(); // IDs de todos los Pokémon ya clasificados
   const filteredUnrankedPokemon = React.useMemo(() => {
-    return allPokemon.filter((p) => !assignedIds.includes(p.id))
-      .filter((p) => p.name.toLowerCase().includes(unrankedSearchTerm.toLowerCase()) || p.id.toString().includes(unrankedSearchTerm));
+    return allPokemon
+      .filter((p) => !assignedIds.includes(p.id))
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(unrankedSearchTerm.toLowerCase()) ||
+          p.id.toString().includes(unrankedSearchTerm)
+      );
   }, [allPokemon, assignedIds, unrankedSearchTerm]);
 
   const onDragStart = (e: React.DragEvent, pokemonId: number, sourceTier: string | null) => {
-    e.dataTransfer.setData("pokemonId", pokemonId.toString());
-    e.dataTransfer.setData("sourceTier", sourceTier || "unranked");
+    e.dataTransfer.setData('pokemonId', pokemonId.toString());
+    e.dataTransfer.setData('sourceTier', sourceTier || 'unranked');
   };
 
   const movePokemon = (pokemonId: number, sourceTier: string | null, targetTier: string | null) => {
@@ -135,12 +192,12 @@ export function TierList({ allPokemon }: TierListProps) {
       const newTiers = { ...prev };
 
       // Eliminar de la fuente
-      if (sourceTier && sourceTier !== "unranked") {
+      if (sourceTier && sourceTier !== 'unranked') {
         newTiers[sourceTier] = newTiers[sourceTier].filter((id) => id !== pokemonId);
       }
 
       // Añadir al destino
-      if (targetTier && targetTier !== "unranked") {
+      if (targetTier && targetTier !== 'unranked') {
         if (!newTiers[targetTier].includes(pokemonId)) {
           newTiers[targetTier] = [...newTiers[targetTier], pokemonId];
         }
@@ -153,8 +210,11 @@ export function TierList({ allPokemon }: TierListProps) {
 
   const onDrop = (e: React.DragEvent, targetTier: string | null) => {
     e.preventDefault();
-    const pokemonId = parseInt(e.dataTransfer.getData("pokemonId"));
-    const sourceTier = e.dataTransfer.getData("sourceTier") === "unranked" ? null : e.dataTransfer.getData("sourceTier");
+    const pokemonId = parseInt(e.dataTransfer.getData('pokemonId'));
+    const sourceTier =
+      e.dataTransfer.getData('sourceTier') === 'unranked'
+        ? null
+        : e.dataTransfer.getData('sourceTier');
     movePokemon(pokemonId, sourceTier, targetTier);
   };
 
@@ -182,16 +242,19 @@ export function TierList({ allPokemon }: TierListProps) {
       {/* Columna Izquierda: Filas de Tiers */}
       <div className="flex-1 flex flex-col gap-4">
         <div className="flex justify-end">
-          <Button
-            onClick={handleExport}
-            disabled={isExporting}
-            className="flex gap-2 items-center"
-          >
-            {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            {t("tiers.exportPDF")}
+          <Button onClick={handleExport} disabled={isExporting} className="flex gap-2 items-center">
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            {t('tiers.exportPDF')}
           </Button>
         </div>
-        <div ref={tierListRef} className="grid gap-2 bg-border border border-border rounded-xl overflow-hidden shadow-xl">
+        <div
+          ref={tierListRef}
+          className="grid gap-2 bg-border border border-border rounded-xl overflow-hidden shadow-xl"
+        >
           {TIER_CONFIG.map((tier) => (
             <div
               key={tier.id}
@@ -199,10 +262,14 @@ export function TierList({ allPokemon }: TierListProps) {
               onDrop={(e) => onDrop(e, tier.id)}
               onClick={() => handleContainerClick(tier.id)}
               className={`flex min-h-[100px] bg-card transition-all hover:bg-accent/50 ${
-                selectedItem && selectedItem.sourceTier !== tier.id ? "ring-2 ring-primary/30 bg-primary/5" : ""
+                selectedItem && selectedItem.sourceTier !== tier.id
+                  ? 'ring-2 ring-primary/30 bg-primary/5'
+                  : ''
               }`}
             >
-              <div className={`${tier.color} w-20 sm:w-32 flex items-center justify-center text-white font-black text-2xl sm:text-4xl shadow-inner`}>
+              <div
+                className={`${tier.color} w-20 sm:w-32 flex items-center justify-center text-white font-black text-2xl sm:text-4xl shadow-inner`}
+              >
                 {tier.id}
               </div>
               <div className="flex-1 p-2 flex flex-wrap gap-2 content-start">
@@ -216,7 +283,9 @@ export function TierList({ allPokemon }: TierListProps) {
                       onDragStart={(e) => onDragStart(e, id, tier.id)}
                       onClick={(e) => handlePokemonClick(e, id, tier.id)}
                       className={`group relative cursor-grab active:cursor-grabbing transform transition-all hover:scale-110 ${
-                        selectedItem?.id === id ? "ring-4 ring-primary scale-110 z-10 rounded-lg shadow-lg" : ""
+                        selectedItem?.id === id
+                          ? 'ring-4 ring-primary scale-110 z-10 rounded-lg shadow-lg'
+                          : ''
                       }`}
                     >
                       <button
@@ -248,7 +317,7 @@ export function TierList({ allPokemon }: TierListProps) {
         <div className="mb-4">
           <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
             <span className="w-3 h-3 bg-primary rounded-full animate-pulse"></span>
-            {t("tiers.unranked")}
+            {t('tiers.unranked')}
           </h3>
           {/* Integración del SearchBar */}
           <SearchBar value={unrankedSearchTerm} onChange={setUnrankedSearchTerm} />
@@ -260,12 +329,13 @@ export function TierList({ allPokemon }: TierListProps) {
           onDrop={(e) => onDrop(e, null)}
           onClick={() => handleContainerClick(null)}
           className={`flex flex-wrap gap-2 min-h-[150px] p-4 bg-muted/50 rounded-xl border-2 border-dashed border-border transition-all hover:border-primary/50 flex-1 overflow-y-auto max-h-[calc(100vh-250px)] ${
-            selectedItem && selectedItem.sourceTier !== null ? "border-primary/50 bg-primary/5" : ""
+            selectedItem && selectedItem.sourceTier !== null ? 'border-primary/50 bg-primary/5' : ''
           }`}
         >
           {filteredUnrankedPokemon.length === 0 ? (
             <p className="text-muted-foreground text-center w-full py-10 italic">
-              {unrankedSearchTerm ? t("app.noPokemonFound") : t("tiers.allPokemonClassified")} {/* Mensaje condicional */}
+              {unrankedSearchTerm ? t('app.noPokemonFound') : t('tiers.allPokemonClassified')}{' '}
+              {/* Mensaje condicional */}
             </p>
           ) : (
             filteredUnrankedPokemon.map((pokemon) => (
@@ -275,7 +345,9 @@ export function TierList({ allPokemon }: TierListProps) {
                 onDragStart={(e) => onDragStart(e, pokemon.id, null)}
                 onClick={(e) => handlePokemonClick(e, pokemon.id, null)}
                 className={`cursor-grab active:cursor-grabbing group relative transform transition-all hover:scale-110 ${
-                  selectedItem?.id === pokemon.id ? "ring-4 ring-primary scale-110 z-10 rounded-lg shadow-lg" : ""
+                  selectedItem?.id === pokemon.id
+                    ? 'ring-4 ring-primary scale-110 z-10 rounded-lg shadow-lg'
+                    : ''
                 }`}
                 title={pokemon.name}
               >

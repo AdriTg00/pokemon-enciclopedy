@@ -25,6 +25,7 @@
     "light": "Light"
   },
   "language": {
+    "label": "Language",
     "spanish": "Spanish",
     "english": "English",
     "french": "French"
@@ -40,10 +41,32 @@
     "exportPDF": "Export PDF"
   },
   "types": {
-    "normal": "Normal", "fire": "Fire", "water": "Water", "electric": "Electric", "grass": "Grass", "ice": "Ice", "fighting": "Fighting", "poison": "Poison", "ground": "Ground", "flying": "Flying", "psychic": "Psychic", "bug": "Bug", "rock": "Rock", "ghost": "Ghost", "dragon": "Dragon", "dark": "Dark", "steel": "Steel", "fairy": "Fairy"
+    "normal": "Normal",
+    "fire": "Fire",
+    "water": "Water",
+    "electric": "Electric",
+    "grass": "Grass",
+    "ice": "Ice",
+    "fighting": "Fighting",
+    "poison": "Poison",
+    "ground": "Ground",
+    "flying": "Flying",
+    "psychic": "Psychic",
+    "bug": "Bug",
+    "rock": "Rock",
+    "ghost": "Ghost",
+    "dragon": "Dragon",
+    "dark": "Dark",
+    "steel": "Steel",
+    "fairy": "Fairy"
   },
   "stats": {
-    "hp": "HP", "attack": "Attack", "defense": "Defense", "specialAttack": "Sp. Atk", "specialDefense": "Sp. Def", "speed": "Speed"
+    "hp": "HP",
+    "attack": "Attack",
+    "defense": "Defense",
+    "specialAttack": "Sp. Atk",
+    "specialDefense": "Sp. Def",
+    "speed": "Speed"
   },
   "abilities": {
     "overgrow": "Overgrow",

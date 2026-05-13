@@ -1,6 +1,8 @@
 import type { Pokemon, PokemonDetail } from "@/types/pokemon";
 
 const POKEAPI_BASE = "https://pokeapi.co/api/v2";
+const BATCH_SIZE = 20;
+const MAX_RETRIES = 2;
 
 interface PokeAPIType {
   type: {
@@ -40,6 +42,21 @@ interface PokeAPIResponse {
   abilities: PokeAPIAbility[];
 }
 
+interface AbilityFlavorTextEntry {
+  flavor_text: string;
+  language: {
+    name: string;
+  };
+}
+
+interface AbilityAPIResponse {
+  flavor_text_entries: AbilityFlavorTextEntry[];
+}
+
+const pokemonCache = new Map<number, Pokemon>();
+const pokemonDetailCache = new Map<string, PokemonDetail>();
+const abilityCache = new Map<string, { name: string; description: string }>();
+
 function getPokemonSprite(data: PokeAPIResponse): string {
   return (
     data.sprites.other?.["official-artwork"]?.front_default ||
@@ -48,15 +65,58 @@ function getPokemonSprite(data: PokeAPIResponse): string {
   );
 }
 
-export async function fetchPokemon(id: number): Promise<Pokemon> {
-  const response = await fetch(`${POKEAPI_BASE}/pokemon/${id}`);
+function cleanText(text: string): string {
+  return text.replace(/[\n\f]/g, " ");
+}
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch Pokemon ${id}`);
+function getDetailCacheKey(id: number, lang: string): string {
+  return `${id}-${lang}`;
+}
+
+async function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(url: string, retries = MAX_RETRIES): Promise<Response> {
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response;
+  } catch (error) {
+    if (retries <= 0) {
+      throw error;
+    }
+
+    await delay(300);
+    return fetchWithRetry(url, retries - 1);
+  }
+}
+
+async function runInBatches<T, R>(
+  items: T[],
+  batchSize: number,
+  callback: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = [];
+
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+
+    const batchResults = await Promise.all(
+      batch.map((item) => callback(item))
+    );
+
+    results.push(...batchResults);
   }
 
-  const data: PokeAPIResponse = await response.json();
+  return results;
+}
 
+function mapPokemon(data: PokeAPIResponse): Pokemon {
   return {
     id: data.id,
     name: data.name,
@@ -65,82 +125,141 @@ export async function fetchPokemon(id: number): Promise<Pokemon> {
   };
 }
 
-export async function fetchPokemonDetail(id: number, lang: string = "en"): Promise<PokemonDetail> {
-  const response = await fetch(`${POKEAPI_BASE}/pokemon/${id}`);
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch Pokemon detail ${id}`);
-  }
-
-  const data: PokeAPIResponse = await response.json();
-
+function mapStats(data: PokeAPIResponse): PokemonDetail["stats"] {
   const statsByName = Object.fromEntries(
     data.stats.map((stat) => [stat.stat.name, stat.base_stat])
   );
 
-  // Obtenemos los detalles de cada habilidad para extraer la descripción en el idioma correcto
-  const detailedAbilities = await Promise.all(
-    data.abilities.map(async (a) => {
-      try {
-        const res = await fetch(a.ability.url);
-        const abilityData = await res.json();
-        const entry = abilityData.flavor_text_entries.find(
-          (e: any) => e.language.name === lang
-        ) || abilityData.flavor_text_entries.find((e: any) => e.language.name === "en");
-        
-        return {
-          name: a.ability.name,
-          description: entry?.flavor_text.replace(/[\n\f]/g, " ") || "",
-        };
-      } catch {
-        return { name: a.ability.name, description: "" };
-      }
-    })
+  return {
+    hp: statsByName.hp ?? 0,
+    attack: statsByName.attack ?? 0,
+    defense: statsByName.defense ?? 0,
+    specialAttack: statsByName["special-attack"] ?? 0,
+    specialDefense: statsByName["special-defense"] ?? 0,
+    speed: statsByName.speed ?? 0,
+  };
+}
+
+async function fetchAbilityDescription(
+  ability: PokeAPIAbility,
+  lang: string
+): Promise<{ name: string; description: string }> {
+  const cacheKey = `${ability.ability.name}-${lang}`;
+
+  if (abilityCache.has(cacheKey)) {
+    return abilityCache.get(cacheKey)!;
+  }
+
+  try {
+    const response = await fetchWithRetry(ability.ability.url);
+    const abilityData: AbilityAPIResponse = await response.json();
+
+    const entry =
+      abilityData.flavor_text_entries.find(
+        (item) => item.language.name === lang
+      ) ||
+      abilityData.flavor_text_entries.find(
+        (item) => item.language.name === "en"
+      );
+
+    const result = {
+      name: ability.ability.name,
+      description: entry?.flavor_text ? cleanText(entry.flavor_text) : "",
+    };
+
+    abilityCache.set(cacheKey, result);
+    return result;
+  } catch (error) {
+    console.error(`Error loading ability ${ability.ability.name}:`, error);
+
+    return {
+      name: ability.ability.name,
+      description: "",
+    };
+  }
+}
+
+export async function fetchPokemon(id: number): Promise<Pokemon> {
+  if (pokemonCache.has(id)) {
+    return pokemonCache.get(id)!;
+  }
+
+  const response = await fetchWithRetry(`${POKEAPI_BASE}/pokemon/${id}`);
+  const data: PokeAPIResponse = await response.json();
+
+  const pokemon = mapPokemon(data);
+
+  pokemonCache.set(id, pokemon);
+
+  return pokemon;
+}
+
+export async function fetchPokemonDetail(
+  id: number,
+  lang: string = "en"
+): Promise<PokemonDetail> {
+  const cacheKey = getDetailCacheKey(id, lang);
+
+  if (pokemonDetailCache.has(cacheKey)) {
+    return pokemonDetailCache.get(cacheKey)!;
+  }
+
+  const response = await fetchWithRetry(`${POKEAPI_BASE}/pokemon/${id}`);
+  const data: PokeAPIResponse = await response.json();
+
+  const detailedAbilities = await runInBatches(
+    data.abilities,
+    3,
+    (ability) => fetchAbilityDescription(ability, lang)
   );
 
-  return {
+  const pokemonDetail: PokemonDetail = {
     id: data.id,
     name: data.name,
     types: data.types.map((t) => t.type.name),
     sprite: getPokemonSprite(data),
-    stats: {
-      hp: statsByName.hp ?? 0,
-      attack: statsByName.attack ?? 0,
-      defense: statsByName.defense ?? 0,
-      specialAttack: statsByName["special-attack"] ?? 0,
-      specialDefense: statsByName["special-defense"] ?? 0,
-      speed: statsByName.speed ?? 0,
-    },
+    stats: mapStats(data),
     height: data.height,
     weight: data.weight,
     abilities: detailedAbilities,
   };
+
+  pokemonDetailCache.set(cacheKey, pokemonDetail);
+
+  return pokemonDetail;
 }
 
 export async function fetchPokemonRange(
   start: number,
   end: number
 ): Promise<Pokemon[]> {
-  const ids = Array.from({ length: end - start + 1 }, (_, index) => start + index);
-  const batchSize = 20;
-  const results: Pokemon[] = [];
+  const ids = Array.from(
+    { length: end - start + 1 },
+    (_, index) => start + index
+  );
 
-  for (let i = 0; i < ids.length; i += batchSize) {
-    const batch = ids.slice(i, i + batchSize);
+  return fetchPokemonByIds(ids);
+}
 
-    const batchResults = await Promise.all(
-      batch.map((id) =>
-        fetchPokemon(id).catch((error) => {
-          console.error(`Error loading Pokémon ${id}:`, error);
-          return null;
-        })
-      )
-    );
+export async function fetchPokemonByIds(ids: number[]): Promise<Pokemon[]> {
+  const uniqueIds = Array.from(new Set(ids));
 
-    results.push(
-      ...batchResults.filter((pokemon): pokemon is Pokemon => pokemon !== null)
-    );
-  }
+  const results = await runInBatches(uniqueIds, BATCH_SIZE, async (id) => {
+    try {
+      return await fetchPokemon(id);
+    } catch (error) {
+      console.error(`Error loading Pokémon ${id}:`, error);
+      return null;
+    }
+  });
 
-  return results.sort((a, b) => a.id - b.id);
+  return results
+    .filter((pokemon): pokemon is Pokemon => pokemon !== null)
+    .sort((a, b) => a.id - b.id);
+}
+
+export function clearPokemonCache(): void {
+  pokemonCache.clear();
+  pokemonDetailCache.clear();
+  abilityCache.clear();
 }

@@ -25,6 +25,7 @@
     "light": "Clair"
   },
   "language": {
+    "label": "Langue",
     "spanish": "Espagnol",
     "english": "Anglais",
     "french": "Français"
@@ -41,10 +42,32 @@
     "deletePrompt": "Glissez ici pour supprimer"
   },
   "types": {
-    "normal": "Normal", "fire": "Feu", "water": "Eau", "electric": "Électrique", "grass": "Plante", "ice": "Glace", "fighting": "Combat", "poison": "Poison", "ground": "Sol", "flying": "Vol", "psychic": "Psy", "bug": "Insecte", "rock": "Roche", "ghost": "Spectre", "dragon": "Dragon", "dark": "Ténèbres", "steel": "Acier", "fairy": "Fée"
+    "normal": "Normal",
+    "fire": "Feu",
+    "water": "Eau",
+    "electric": "Électrique",
+    "grass": "Plante",
+    "ice": "Glace",
+    "fighting": "Combat",
+    "poison": "Poison",
+    "ground": "Sol",
+    "flying": "Vol",
+    "psychic": "Psy",
+    "bug": "Insecte",
+    "rock": "Roche",
+    "ghost": "Spectre",
+    "dragon": "Dragon",
+    "dark": "Ténèbres",
+    "steel": "Acier",
+    "fairy": "Fée"
   },
   "stats": {
-    "hp": "PV", "attack": "Attaque", "defense": "Défense", "specialAttack": "Att. Spé.", "specialDefense": "Déf. Spé.", "speed": "Vitesse"
+    "hp": "PV",
+    "attack": "Attaque",
+    "defense": "Défense",
+    "specialAttack": "Att. Spé.",
+    "specialDefense": "Déf. Spé.",
+    "speed": "Vitesse"
   },
   "abilities": {
     "overgrow": "Engrais",
