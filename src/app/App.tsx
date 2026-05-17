@@ -3,14 +3,14 @@ import { ThemeToggle } from './components/ThemeToggle';
 import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LanguageToggle } from './components/LanguageToggle';
-import { PokemonCard } from '@/app/components/PokemonCard';
-import { PokemonDetail } from '@/app/components/PokemonDetail';
-import { SearchBar } from '@/app/components/SearchBar';
-import { FilterSection } from '@/app/components/FilterSection';
-import { TierList } from '@/app/components/TierList';
-import type { Pokemon, PokemonDetail as PokemonDetailType } from '@/types/pokemon';
-import { GENERATION_RANGES } from '@/types/pokemon';
-import { fetchPokemonRange, fetchPokemonDetail, fetchPokemonByIds } from '@/services/pokemonApi';
+import { PokemonCard } from './components/PokemonCard';
+import { PokemonDetail } from './components/PokemonDetail';
+import { SearchBar } from './components/SearchBar';
+import { FilterSection } from './components/FilterSection';
+import { TierList } from './components/TierList';
+import type { Pokemon, PokemonDetail as PokemonDetailType, PokemonType } from '../types/pokemon';
+import { GENERATION_RANGES } from '../types/pokemon';
+import { fetchPokemonRange, fetchPokemonDetail, fetchPokemonByIds } from '../services/pokemonApi';
 
 const PAGE_SIZE = 20;
 const TOTAL_POKEMON = 1024;
@@ -21,7 +21,7 @@ export default function App() {
   const [selectedPokemon, setSelectedPokemon] = useState<PokemonDetailType | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGeneration, setSelectedGeneration] = useState<number | null>(null);
-  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<PokemonType | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
@@ -32,6 +32,7 @@ export default function App() {
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const { t, i18n } = useTranslation();
+  const lastDetailLanguage = useRef(i18n.language);
 
   useEffect(() => {
     let cancelled = false;
@@ -187,6 +188,38 @@ export default function App() {
     }
   };
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const refreshSelectedPokemon = async () => {
+      if (!selectedPokemon) return;
+      if (lastDetailLanguage.current === i18n.language) return;
+
+      setLoadingDetail(true);
+
+      try {
+        const detail = await fetchPokemonDetail(selectedPokemon.id, i18n.language);
+
+        if (!cancelled) {
+          setSelectedPokemon(detail);
+          lastDetailLanguage.current = i18n.language;
+        }
+      } catch (error) {
+        console.error('Error refreshing Pokemon detail after language change:', error);
+      } finally {
+        if (!cancelled) {
+          setLoadingDetail(false);
+        }
+      }
+    };
+
+    refreshSelectedPokemon();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [i18n.language, selectedPokemon?.id]);
+
   return (
     <div className="min-h-screen bg-background text-foreground pb-6 transition-colors">
       <header className="bg-card text-card-foreground border-b border-border shadow-md sticky top-0 z-40 transition-colors">
@@ -200,7 +233,7 @@ export default function App() {
                 [-webkit-text-stroke:2px_#1e3a8a]
               "
             >
-              PokéDex
+              PokéManiaco
             </h1>
 
             <div className="flex items-center gap-2">

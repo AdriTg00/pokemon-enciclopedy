@@ -1,11 +1,12 @@
-import { Button } from "@/app/components/ui/button";
+import { Button } from "./ui/button";
 import { useTranslation } from "react-i18next";
+import { POKEMON_TYPES, TYPE_COLORS, PokemonType } from "../../types/pokemon";
 
 interface FilterSectionProps {
   selectedGeneration: number | null;
-  selectedType: string | null;
+  selectedType: PokemonType | null;
   onGenerationChange: (gen: number | null) => void;
-  onTypeChange: (type: string | null) => void;
+  onTypeChange: (type: PokemonType | null) => void;
 }
 
 const generations = [
@@ -20,47 +21,9 @@ const generations = [
   { num: 9, name: "Gen IX", range: "906-1025" },
 ];
 
-const types = [
-  "normal",
-  "fire",
-  "water",
-  "electric",
-  "grass",
-  "ice",
-  "fighting",
-  "poison",
-  "ground",
-  "flying",
-  "psychic",
-  "bug",
-  "rock",
-  "ghost",
-  "dragon",
-  "dark",
-  "steel",
-  "fairy",
-];
+const types: readonly PokemonType[] = POKEMON_TYPES;
 
-const typeColors: { [key: string]: string } = {
-  normal: "#A8A878",
-  fire: "#F08030",
-  water: "#6890F0",
-  electric: "#F8D030",
-  grass: "#78C850",
-  ice: "#98D8D8",
-  fighting: "#C03028",
-  poison: "#A040A0",
-  ground: "#E0C068",
-  flying: "#A890F0",
-  psychic: "#F85888",
-  bug: "#A8B820",
-  rock: "#B8A038",
-  ghost: "#705898",
-  dragon: "#7038F8",
-  dark: "#705848",
-  steel: "#B8B8D0",
-  fairy: "#EE99AC",
-};
+const typeColors = TYPE_COLORS;
 
 export function FilterSection({
   selectedGeneration,

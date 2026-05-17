@@ -76,5 +76,6 @@
     "torrent": "Torrent",
     "shield-dust": "Shield Dust",
     "static": "Static"
-  }
+  },
+  "abilityDescriptions": {}
 }

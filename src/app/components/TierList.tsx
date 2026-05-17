@@ -19,6 +19,14 @@ const TIER_CONFIG = [
   { id: 'D', color: 'bg-blue-500' },
 ];
 
+const DEFAULT_TIERS: Record<string, number[]> = {
+  S: [],
+  A: [],
+  B: [],
+  C: [],
+  D: [],
+};
+
 const PAGE_SIZE = 20;
 const TOTAL_POKEMON = 1024;
 
@@ -328,6 +336,11 @@ export function TierList({ initialPokemon }: TierListProps) {
     setSelectedItem(null);
   };
 
+  const handleClearAll = () => {
+    setTiers({ ...DEFAULT_TIERS });
+    setSelectedItem(null);
+  };
+
   const onDrop = (event: React.DragEvent, targetTier: string | null) => {
     event.preventDefault();
 
@@ -361,10 +374,22 @@ export function TierList({ initialPokemon }: TierListProps) {
     event.preventDefault();
   };
 
+  const hasAssignedPokemon = assignedIds.length > 0;
+
   return (
     <div className="flex flex-col lg:flex-row gap-8">
       <div className="flex-1 flex flex-col gap-4">
-        <div className="flex justify-end">
+        <div className="flex flex-col sm:flex-row justify-end gap-2">
+          <Button
+            variant="secondary"
+            onClick={handleClearAll}
+            disabled={!hasAssignedPokemon}
+            className="flex gap-2 items-center"
+          >
+            <X className="w-4 h-4" />
+            {t('tiers.clearAll', { defaultValue: 'Eliminar todo' })}
+          </Button>
+
           <Button onClick={handleExport} disabled={isExporting} className="flex gap-2 items-center">
             {isExporting ? (
               <Loader2 className="w-4 h-4 animate-spin" />

@@ -78,5 +78,6 @@
     "torrent": "Torrente",
     "shield-dust": "Polvo Escudo",
     "static": "Electricidad Estática"
-  }
+  },
+  "abilityDescriptions": {}
 }

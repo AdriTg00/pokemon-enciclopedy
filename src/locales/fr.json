@@ -77,5 +77,6 @@
     "torrent": "Torrent",
     "shield-dust": "Écran Poudre",
     "static": "Statik"
-  }
+  },
+  "abilityDescriptions": {}
 }
