@@ -41,31 +41,21 @@ export default function App() {
       try {
         setLoading(true);
 
-        if (selectedGeneration === null) {
-          const results = await fetchPokemonRange(1, PAGE_SIZE);
+        const range =
+          selectedGeneration !== null
+            ? GENERATION_RANGES[selectedGeneration - 1]
+            : { start: 1, end: TOTAL_POKEMON };
 
-          if (cancelled) return;
+        const start = range.start;
+        const end = Math.min(start + PAGE_SIZE - 1, range.end);
 
-          setPokemonList(results);
-          setNextPokemonId(PAGE_SIZE + 1);
-          setHasMore(PAGE_SIZE < TOTAL_POKEMON);
-          return;
-        }
-
-        const range = GENERATION_RANGES[selectedGeneration - 1];
-
-        const idsToLoad = Array.from(
-          { length: range.end - range.start + 1 },
-          (_, index) => range.start + index
-        );
-
-        const newPokemon = await fetchPokemonByIds(idsToLoad);
+        const results = await fetchPokemonRange(start, end);
 
         if (cancelled) return;
 
-        setPokemonList(newPokemon);
-        setNextPokemonId(1);
-        setHasMore(false);
+        setPokemonList(results);
+        setNextPokemonId(end + 1);
+        setHasMore(end < range.end);
       } catch (error) {
         console.error('Error fetching Pokémon:', error);
       } finally {
@@ -75,23 +65,30 @@ export default function App() {
       }
     };
 
+    if (view !== 'dex') return;
+
     loadPokemon();
 
     return () => {
       cancelled = true;
     };
-  }, [selectedGeneration]);
+  }, [selectedGeneration, selectedType, view]);
 
   const loadMorePokemon = useCallback(async () => {
-    if (loading || loadingMore || !hasMore || selectedGeneration !== null || view !== 'dex') {
+    if (loading || loadingMore || !hasMore || view !== 'dex') {
       return;
     }
 
     try {
       setLoadingMore(true);
 
+      const range =
+        selectedGeneration !== null
+          ? GENERATION_RANGES[selectedGeneration - 1]
+          : { start: 1, end: TOTAL_POKEMON };
+
       const start = nextPokemonId;
-      const end = Math.min(start + PAGE_SIZE - 1, TOTAL_POKEMON);
+      const end = Math.min(start + PAGE_SIZE - 1, range.end);
 
       const newPokemon = await fetchPokemonRange(start, end);
 
@@ -125,7 +122,6 @@ export default function App() {
 
     if (!target) return;
     if (view !== 'dex') return;
-    if (selectedGeneration !== null) return;
     if (!hasMore) return;
 
     const observer = new IntersectionObserver(
@@ -148,7 +144,7 @@ export default function App() {
     return () => {
       observer.disconnect();
     };
-  }, [view, selectedGeneration, hasMore, loadMorePokemon]);
+  }, [view, hasMore, loadMorePokemon]);
 
   const filteredPokemon = useMemo(() => {
     let filtered = pokemonList;
@@ -289,7 +285,7 @@ export default function App() {
                   ))}
                 </div>
 
-                {selectedGeneration === null && hasMore && (
+                {hasMore && (
                   <div ref={loadMoreRef} className="flex justify-center items-center py-8 min-h-20">
                     {loadingMore && (
                       <div className="flex items-center gap-1 text-sm font-medium text-muted-foreground">
@@ -302,7 +298,7 @@ export default function App() {
               </>
             )}
 
-            {filteredPokemon.length === 0 && !loading && (
+            {filteredPokemon.length === 0 && !loading && !hasMore && (
               <div className="text-center py-16">
                 <p className="text-muted-foreground text-lg sm:text-xl">
                   {t('app.noPokemonFound')}
