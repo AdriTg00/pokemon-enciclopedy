@@ -8,7 +8,7 @@
     "imageError": "Erreur de chargement de l'image",
     "viewTierList": "Tier List",
     "backToDex": "Retour au PokéDex",
-    "loading": "Chargement..."
+    "loading": "Chargement"
   },
   "filters": {
     "generation": "Génération",
