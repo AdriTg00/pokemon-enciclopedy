@@ -245,9 +245,11 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex justify-center">
-            <SearchBar value={searchTerm} onChange={setSearchTerm} />
-          </div>
+          {view === 'dex' && (
+            <div className="flex justify-center">
+              <SearchBar value={searchTerm} onChange={setSearchTerm} />
+            </div>
+          )}
         </div>
       </header>
 
