@@ -28,7 +28,7 @@ const DEFAULT_TIERS: Record<string, number[]> = {
 };
 
 const PAGE_SIZE = 20;
-const TOTAL_POKEMON = 1024;
+const TOTAL_POKEMON = 1025;
 
 export function TierList({ initialPokemon }: TierListProps) {
   const { t } = useTranslation();
@@ -45,6 +45,7 @@ export function TierList({ initialPokemon }: TierListProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [unrankedSearchTerm, setUnrankedSearchTerm] = useState('');
   const isLoadingMoreRef = useRef(false);
+  const lastInitialLength = useRef(initialPokemon.length);
 
   const [selectedItem, setSelectedItem] = useState<{
     id: number;
@@ -57,12 +58,18 @@ export function TierList({ initialPokemon }: TierListProps) {
   });
 
   useEffect(() => {
+    if (initialPokemon.length <= lastInitialLength.current) return;
+
+    const newItems = initialPokemon.slice(lastInitialLength.current);
+
+    lastInitialLength.current = initialPokemon.length;
+
     setAllPokemon((prev) => {
       const existingIds = new Set(prev.map((pokemon) => pokemon.id));
 
       const mergedPokemon = [
         ...prev,
-        ...initialPokemon.filter((pokemon) => !existingIds.has(pokemon.id)),
+        ...newItems.filter((pokemon) => !existingIds.has(pokemon.id)),
       ];
 
       return mergedPokemon.sort((a, b) => a.id - b.id);

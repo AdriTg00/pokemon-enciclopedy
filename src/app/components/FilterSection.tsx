@@ -1,6 +1,6 @@
 import { Button } from "./ui/button";
 import { useTranslation } from "react-i18next";
-import { POKEMON_TYPES, TYPE_COLORS, PokemonType } from "../../types/pokemon";
+import { POKEMON_TYPES, TYPE_COLORS, PokemonType } from "@/types/pokemon";
 
 interface FilterSectionProps {
   selectedGeneration: number | null;

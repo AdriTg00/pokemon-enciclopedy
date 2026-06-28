@@ -1,5 +1,3 @@
-"use client";
-
 import * as React from "react";
 import * as ProgressPrimitive from "@radix-ui/react-progress";
 
@@ -9,10 +7,15 @@ function Progress({
   className,
   value,
   indicatorClassName,
+  style,
   ...props
 }: React.ComponentProps<typeof ProgressPrimitive.Root> & {
   indicatorClassName?: string;
 }) {
+  const progressStyle = style as React.CSSProperties & {
+    "--progress-background"?: string;
+  };
+
   return (
     <ProgressPrimitive.Root
       data-slot="progress"
@@ -20,6 +23,7 @@ function Progress({
         "bg-primary/20 relative h-2 w-full overflow-hidden rounded-full",
         className,
       )}
+      style={style}
       {...props}
     >
       <ProgressPrimitive.Indicator
@@ -30,8 +34,7 @@ function Progress({
         )}
         style={{
           transform: `translateX(-${100 - (value || 0)}%)`,
-          backgroundColor:
-            (props.style as any)?.["--progress-background"] || undefined,
+          backgroundColor: progressStyle?.["--progress-background"] || undefined,
         }}
       />
     </ProgressPrimitive.Root>

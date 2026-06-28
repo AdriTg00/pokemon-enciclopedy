@@ -1,38 +1,12 @@
 import { motion } from "motion/react";
 import { useTranslation } from "react-i18next";
-
-interface Pokemon {
-  id: number;
-  name: string;
-  types: string[];
-  sprite: string;
-}
+import type { Pokemon } from "@/types/pokemon";
+import { TYPE_COLORS as typeColors } from "@/types/pokemon";
 
 interface PokemonCardProps {
   pokemon: Pokemon;
   onClick: () => void;
 }
-
-const typeColors: { [key: string]: string } = {
-  normal: "#A8A878",
-  fire: "#F08030",
-  water: "#6890F0",
-  electric: "#F8D030",
-  grass: "#78C850",
-  ice: "#98D8D8",
-  fighting: "#C03028",
-  poison: "#A040A0",
-  ground: "#E0C068",
-  flying: "#A890F0",
-  psychic: "#F85888",
-  bug: "#A8B820",
-  rock: "#B8A038",
-  ghost: "#705898",
-  dragon: "#7038F8",
-  dark: "#705848",
-  steel: "#B8B8D0",
-  fairy: "#EE99AC",
-};
 
 export function PokemonCard({ pokemon, onClick }: PokemonCardProps) {
   const { t } = useTranslation();

@@ -10,10 +10,10 @@ import { FilterSection } from './components/FilterSection';
 import { TierList } from './components/TierList';
 import type { Pokemon, PokemonDetail as PokemonDetailType, PokemonType } from '../types/pokemon';
 import { GENERATION_RANGES } from '../types/pokemon';
-import { fetchPokemonRange, fetchPokemonDetail, fetchPokemonByIds } from '../services/pokemonApi';
+import { fetchPokemonRange, fetchPokemonDetail } from '../services/pokemonApi';
 
 const PAGE_SIZE = 20;
-const TOTAL_POKEMON = 1024;
+const TOTAL_POKEMON = 1025;
 
 export default function App() {
   const [pokemonList, setPokemonList] = useState<Pokemon[]>([]);
@@ -214,7 +214,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [i18n.language, selectedPokemon?.id]);
+    }, [i18n.language, selectedPokemon]);
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-6 transition-colors">
@@ -300,7 +300,7 @@ export default function App() {
               </>
             )}
 
-            {filteredPokemon.length === 0 && !loading && !hasMore && (
+            {filteredPokemon.length === 0 && !loading && (
               <div className="text-center py-16">
                 <p className="text-muted-foreground text-lg sm:text-xl">
                   {t('app.noPokemonFound')}

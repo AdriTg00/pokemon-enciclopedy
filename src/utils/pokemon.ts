@@ -1,7 +1,7 @@
-import { POKEMON_TYPE_COLORS } from '@/config/constants';
+import { TYPE_COLORS } from '@/types/pokemon';
 
 export function getPokemonTypeColor(type: string): string {
-  return POKEMON_TYPE_COLORS[type.toLowerCase()] || '#A8A878';
+  return TYPE_COLORS[type.toLowerCase() as keyof typeof TYPE_COLORS] || '#A8A878';
 }
 
 export function formatPokemonId(id: number): string {
