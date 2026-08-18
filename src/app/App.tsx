@@ -13,7 +13,6 @@ import type {
   Pokemon,
   PokemonDetail as PokemonDetailType,
   PokemonType,
-  PokemonStats,
   PokemonSortStat,
 } from '../types/pokemon';
 import {
@@ -23,8 +22,9 @@ import {
 import {
   fetchPokemonRange,
   fetchPokemonDetail,
-  fetchPokemonStatsByIds,
+  fetchPokemonByIds,
 } from '../services/pokemonApi';
+import { ALL_POKEMON_STATS, POKEMON_STAT_RANKINGS } from '@/data/pokemonStats';
 
 const PAGE_SIZE = 20;
 const TOTAL_POKEMON = 1025;
@@ -38,63 +38,33 @@ export default function App() {
   const [selectedType, setSelectedType] = useState<PokemonType | null>(null);
   const [selectedStat, setSelectedStat] = useState<PokemonSortStat | null>(null);
   const [sortAscending, setSortAscending] = useState(false);
-  const [statsMap, setStatsMap] = useState<Record<number, PokemonStats>>({});
   const [loading, setLoading] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  const statsMapRef = useRef<Record<number, PokemonStats>>({});
-  const statsInFlightRef = useRef<Set<number>>(new Set());
-
-  useEffect(() => {
-    statsMapRef.current = statsMap;
-  }, [statsMap]);
-
-  useEffect(() => {
-    if (view !== 'dex' || selectedStat === null) return;
-
-    const loadMissingStats = async () => {
-      const missingIds = pokemonList
-        .map((pokemon) => pokemon.id)
-        .filter(
-          (id) => !statsMapRef.current[id] && !statsInFlightRef.current.has(id)
-        );
-
-      if (missingIds.length === 0) return;
-
-      missingIds.forEach((id) => statsInFlightRef.current.add(id));
-
-      try {
-        const statsList = await fetchPokemonStatsByIds(missingIds);
-
-        setStatsMap((prev) => {
-          const next = { ...prev };
-
-          missingIds.forEach((id, index) => {
-            if (index < statsList.length) {
-              next[id] = statsList[index];
-            }
-          });
-
-          return next;
-        });
-      } catch (error) {
-        console.error('Error loading Pokémon stats:', error);
-      } finally {
-        missingIds.forEach((id) => statsInFlightRef.current.delete(id));
-      }
-    };
-
-    loadMissingStats();
-  }, [pokemonList, selectedStat, view]);
-
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextPokemonId, setNextPokemonId] = useState(1);
+  const [nextRankIndex, setNextRankIndex] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const { t, i18n } = useTranslation();
   const lastDetailLanguage = useRef(i18n.language);
+
+  const rankedIds = useMemo(() => {
+    if (selectedStat === null) return null;
+
+    const range =
+      selectedGeneration !== null
+        ? GENERATION_RANGES[selectedGeneration - 1]
+        : { start: 1, end: TOTAL_POKEMON };
+
+    const scoped = POKEMON_STAT_RANKINGS[selectedStat].filter(
+      (id) => id >= range.start && id <= range.end
+    );
+
+    return sortAscending ? scoped.reverse() : scoped;
+  }, [selectedStat, selectedGeneration, sortAscending]);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,21 +73,37 @@ export default function App() {
       try {
         setLoading(true);
 
-        const range =
-          selectedGeneration !== null
-            ? GENERATION_RANGES[selectedGeneration - 1]
-            : { start: 1, end: TOTAL_POKEMON };
+        if (rankedIds) {
+          const ids = rankedIds.slice(0, PAGE_SIZE);
+          const results = ids.length > 0 ? await fetchPokemonByIds(ids) : [];
 
-        const start = range.start;
-        const end = Math.min(start + PAGE_SIZE - 1, range.end);
+          if (cancelled) return;
 
-        const results = await fetchPokemonRange(start, end);
+          const byId = new Map(results.map((pokemon) => [pokemon.id, pokemon]));
+          const ordered = ids
+            .map((id) => byId.get(id))
+            .filter((pokemon): pokemon is Pokemon => Boolean(pokemon));
 
-        if (cancelled) return;
+          setPokemonList(ordered);
+          setNextRankIndex(Math.min(ids.length, rankedIds.length));
+          setHasMore(ordered.length < rankedIds.length);
+        } else {
+          const range =
+            selectedGeneration !== null
+              ? GENERATION_RANGES[selectedGeneration - 1]
+              : { start: 1, end: TOTAL_POKEMON };
 
-        setPokemonList(results);
-        setNextPokemonId(end + 1);
-        setHasMore(end < range.end);
+          const start = range.start;
+          const end = Math.min(start + PAGE_SIZE - 1, range.end);
+
+          const results = await fetchPokemonRange(start, end);
+
+          if (cancelled) return;
+
+          setPokemonList(results);
+          setNextPokemonId(end + 1);
+          setHasMore(end < range.end);
+        }
       } catch (error) {
         console.error('Error fetching Pokémon:', error);
       } finally {
@@ -134,7 +120,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [selectedGeneration, selectedType, view]);
+  }, [selectedGeneration, selectedType, rankedIds, view]);
 
   const loadMorePokemon = useCallback(async () => {
     if (loading || loadingMore || !hasMore || view !== 'dex') {
@@ -144,40 +130,64 @@ export default function App() {
     try {
       setLoadingMore(true);
 
-      const range =
-        selectedGeneration !== null
-          ? GENERATION_RANGES[selectedGeneration - 1]
-          : { start: 1, end: TOTAL_POKEMON };
+      if (rankedIds) {
+        const ids = rankedIds.slice(nextRankIndex, nextRankIndex + PAGE_SIZE);
+        const results = ids.length > 0 ? await fetchPokemonByIds(ids) : [];
 
-      const start = nextPokemonId;
-      const end = Math.min(start + PAGE_SIZE - 1, range.end);
+        const byId = new Map(results.map((pokemon) => [pokemon.id, pokemon]));
+        const ordered = ids
+          .map((id) => byId.get(id))
+          .filter((pokemon): pokemon is Pokemon => Boolean(pokemon));
 
-      const newPokemon = await fetchPokemonRange(start, end);
+        setPokemonList((prev) => {
+          const existingIds = new Set(prev.map((pokemon) => pokemon.id));
 
-      setPokemonList((prev) => {
-        const existingIds = new Set(prev.map((pokemon) => pokemon.id));
+          return [
+            ...prev,
+            ...ordered.filter((pokemon) => !existingIds.has(pokemon.id)),
+          ];
+        });
 
-        const mergedPokemon = [
-          ...prev,
-          ...newPokemon.filter((pokemon) => !existingIds.has(pokemon.id)),
-        ];
+        const newIndex = Math.min(nextRankIndex + ordered.length, rankedIds.length);
 
-        return mergedPokemon.sort((a, b) => a.id - b.id);
-      });
+        setNextRankIndex(newIndex);
+        setHasMore(newIndex < rankedIds.length);
+      } else {
+        const range =
+          selectedGeneration !== null
+            ? GENERATION_RANGES[selectedGeneration - 1]
+            : { start: 1, end: TOTAL_POKEMON };
 
-      const nextId = end + 1;
+        const start = nextPokemonId;
+        const end = Math.min(start + PAGE_SIZE - 1, range.end);
 
-      setNextPokemonId(nextId);
+        const newPokemon = await fetchPokemonRange(start, end);
 
-      if (nextId > TOTAL_POKEMON) {
-        setHasMore(false);
+        setPokemonList((prev) => {
+          const existingIds = new Set(prev.map((pokemon) => pokemon.id));
+
+          const mergedPokemon = [
+            ...prev,
+            ...newPokemon.filter((pokemon) => !existingIds.has(pokemon.id)),
+          ];
+
+          return mergedPokemon.sort((a, b) => a.id - b.id);
+        });
+
+        const nextId = end + 1;
+
+        setNextPokemonId(nextId);
+
+        if (nextId > TOTAL_POKEMON) {
+          setHasMore(false);
+        }
       }
     } catch (error) {
       console.error('Error loading more Pokémon:', error);
     } finally {
       setLoadingMore(false);
     }
-  }, [loading, loadingMore, hasMore, selectedGeneration, view, nextPokemonId]);
+  }, [loading, loadingMore, hasMore, selectedGeneration, view, nextPokemonId, rankedIds, nextRankIndex]);
 
   useEffect(() => {
     const target = loadMoreRef.current;
@@ -232,8 +242,8 @@ export default function App() {
 
     if (selectedStat) {
       filtered = [...filtered].sort((a, b) => {
-        const statsA = statsMap[a.id];
-        const statsB = statsMap[b.id];
+        const statsA = ALL_POKEMON_STATS[a.id];
+        const statsB = ALL_POKEMON_STATS[b.id];
 
         const valueA = statsA ? getPokemonStatValue(statsA, selectedStat) : Infinity;
         const valueB = statsB ? getPokemonStatValue(statsB, selectedStat) : Infinity;
@@ -243,7 +253,7 @@ export default function App() {
     }
 
     return filtered;
-  }, [searchTerm, selectedGeneration, selectedType, pokemonList, selectedStat, sortAscending, statsMap]);
+  }, [searchTerm, selectedGeneration, selectedType, pokemonList, selectedStat, sortAscending]);
 
   const handlePokemonClick = async (id: number) => {
     setLoadingDetail(true);
@@ -299,7 +309,7 @@ export default function App() {
   const statValueFor = (id: number): number | null | undefined => {
     if (!selectedStat) return undefined;
 
-    const stats = statsMap[id];
+    const stats = ALL_POKEMON_STATS[id];
 
     return stats ? getPokemonStatValue(stats, selectedStat) : null;
   };

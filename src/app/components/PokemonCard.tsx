@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import type { Pokemon } from "@/types/pokemon";
 import { TYPE_COLORS as typeColors } from "@/types/pokemon";
+import { ImageOff, Loader2 } from "lucide-react";
 
 interface PokemonCardProps {
   pokemon: Pokemon;
@@ -10,10 +12,32 @@ interface PokemonCardProps {
   statLabel?: string;
 }
 
+type ImageState = "loading" | "loaded" | "error";
+
+const loadedSprites = new Set<string>();
+
 export function PokemonCard({ pokemon, onClick, statValue, statLabel }: PokemonCardProps) {
   const { t } = useTranslation();
   const primaryType = pokemon.types[0];
   const bgColor = typeColors[primaryType] || "#A8A878";
+
+  const [imageState, setImageState] = useState<ImageState>(() =>
+    pokemon.sprite
+      ? loadedSprites.has(pokemon.sprite)
+        ? "loaded"
+        : "loading"
+      : "error"
+  );
+
+  const handleLoad = () => {
+    loadedSprites.add(pokemon.sprite);
+    setImageState("loaded");
+  };
+
+  const handleError = () => {
+    loadedSprites.delete(pokemon.sprite);
+    setImageState("error");
+  };
 
   return (
     <motion.div
@@ -56,13 +80,32 @@ export function PokemonCard({ pokemon, onClick, statValue, statLabel }: PokemonC
           )}
         </div>
 
-        <div className="mb-3 flex items-center justify-center h-20 sm:h-28">
-          <img
-            src={pokemon.sprite}
-            alt={pokemon.name}
-            loading="lazy"
-            className="h-20 w-20 sm:h-24 sm:w-24 object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.14)] transition-transform duration-300 group-hover:scale-110"
-          />
+        <div className="relative mb-3 flex h-20 items-center justify-center sm:h-28">
+          {imageState === "loading" && (
+            <Loader2
+              className="h-6 w-6 animate-spin text-poke-red/70"
+              aria-label={t("app.loading")}
+            />
+          )}
+
+          {imageState === "error" ? (
+            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-border bg-muted/50 sm:h-20 sm:w-20">
+              <ImageOff className="h-6 w-6 text-muted-foreground/50" />
+            </div>
+          ) : (
+            <motion.img
+              src={pokemon.sprite}
+              alt={pokemon.name}
+              loading="lazy"
+              decoding="async"
+              onLoad={handleLoad}
+              onError={handleError}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: imageState === "loaded" ? 1 : 0 }}
+              transition={{ duration: 0.25 }}
+              className="absolute inset-0 m-auto h-20 w-20 sm:h-24 sm:w-24 object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.14)] transition-transform duration-300 group-hover:scale-110"
+            />
+          )}
         </div>
 
         <h3 className="truncate px-1 text-center font-bold text-sm sm:text-base capitalize tracking-tight text-foreground">

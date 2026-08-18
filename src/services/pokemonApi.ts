@@ -66,6 +66,14 @@ function getPokemonSprite(data: PokeAPIResponse): string {
   );
 }
 
+function getPokemonThumbSprite(data: PokeAPIResponse): string {
+  return (
+    data.sprites.front_default ||
+    data.sprites.other?.["official-artwork"]?.front_default ||
+    ""
+  );
+}
+
 function cleanText(text: string): string {
   return text.replace(/[\n\f]/g, " ");
 }
@@ -122,7 +130,7 @@ function mapPokemon(data: PokeAPIResponse): Pokemon {
     id: data.id,
     name: data.name,
     types: data.types.map((t) => t.type.name),
-    sprite: getPokemonSprite(data),
+    sprite: getPokemonThumbSprite(data),
   };
 }
 
