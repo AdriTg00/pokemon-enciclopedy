@@ -6,9 +6,18 @@ import { ImageWithFallback } from './ImageWithFallback';
 import { SearchBar } from './SearchBar';
 import { Download, Loader2, X } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
+import { POKEMON_NAMES } from '@/data/pokemonNames';
 
 interface TierListProps {
   initialPokemon: Pokemon[];
+}
+
+function normalizeName(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
 }
 
 const TIER_CONFIG = [
@@ -44,8 +53,13 @@ export function TierList({ initialPokemon }: TierListProps) {
 
   const [isExporting, setIsExporting] = useState(false);
   const [unrankedSearchTerm, setUnrankedSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<number[] | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
   const isLoadingMoreRef = useRef(false);
   const lastInitialLength = useRef(initialPokemon.length);
+  const loadedPokemonIdsRef = useRef<Set<number>>(
+    new Set(initialPokemon.map((pokemon) => pokemon.id))
+  );
 
   const [selectedItem, setSelectedItem] = useState<{
     id: number;
@@ -82,6 +96,97 @@ export function TierList({ initialPokemon }: TierListProps) {
 
   const assignedIds = useMemo(() => Object.values(tiers).flat(), [tiers]);
 
+  const pokemonMap = useMemo(
+    () => new Map(allPokemon.map((pokemon) => [pokemon.id, pokemon])),
+    [allPokemon]
+  );
+
+  const assignedIdSet = useMemo(() => new Set(assignedIds), [assignedIds]);
+
+  useEffect(() => {
+    loadedPokemonIdsRef.current = new Set(allPokemon.map((pokemon) => pokemon.id));
+  }, [allPokemon]);
+
+  useEffect(() => {
+    const term = unrankedSearchTerm.trim();
+    const normalizedTerm = term ? normalizeName(term) : '';
+
+    let cancelled = false;
+
+    const timer = window.setTimeout(
+      () => {
+        if (!term) {
+          setSearchResults(null);
+          setSearchLoading(false);
+          return;
+        }
+
+        if (!normalizedTerm) {
+          setSearchResults([]);
+          setSearchLoading(false);
+          return;
+        }
+
+        const isNumeric = /^\d+$/.test(normalizedTerm);
+
+        setSearchResults(null);
+        setSearchLoading(true);
+
+        const matchedIds = Object.keys(POKEMON_NAMES)
+          .map(Number)
+          .filter((id) =>
+            isNumeric
+              ? id.toString().includes(normalizedTerm)
+              : normalizeName(POKEMON_NAMES[id]).includes(normalizedTerm)
+          )
+          .sort((a, b) => a - b);
+
+        if (cancelled) return;
+
+        setSearchResults(matchedIds);
+
+        const unloadedIds = matchedIds.filter(
+          (id) => !loadedPokemonIdsRef.current.has(id)
+        );
+
+        if (unloadedIds.length === 0) {
+          setSearchLoading(false);
+          return;
+        }
+
+        fetchPokemonByIds(unloadedIds)
+          .then((pokemon) => {
+            if (cancelled) return;
+
+            setAllPokemon((prev) => {
+              const existingIds = new Set(prev.map((item) => item.id));
+
+              const mergedPokemon = [
+                ...prev,
+                ...pokemon.filter((item) => !existingIds.has(item.id)),
+              ];
+
+              return mergedPokemon.sort((a, b) => a.id - b.id);
+            });
+          })
+          .catch((error) => {
+            console.error('Error searching Pokémon:', error);
+          })
+          .finally(() => {
+            if (!cancelled) {
+              setSearchLoading(false);
+            }
+          });
+      },
+      term ? 200 : 0
+    );
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [unrankedSearchTerm]);
+
   useEffect(() => {
     const loadMissingAssignedPokemon = async () => {
       const loadedIds = new Set(allPokemon.map((pokemon) => pokemon.id));
@@ -113,6 +218,7 @@ export function TierList({ initialPokemon }: TierListProps) {
 
   const loadMorePokemon = useCallback(async () => {
     if (isLoadingMoreRef.current || loadingMore || !hasMore) return;
+    if (unrankedSearchTerm.trim()) return;
 
     isLoadingMoreRef.current = true;
     setLoadingMore(true);
@@ -147,7 +253,7 @@ export function TierList({ initialPokemon }: TierListProps) {
       isLoadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  }, [loadingMore, hasMore, nextPokemonId]);
+  }, [loadingMore, hasMore, nextPokemonId, unrankedSearchTerm]);
 
   useEffect(() => {
     const target = loadMoreRef.current;
@@ -178,14 +284,17 @@ export function TierList({ initialPokemon }: TierListProps) {
   }, [hasMore, loadingMore, nextPokemonId, loadMorePokemon]);
 
   const filteredUnrankedPokemon = useMemo(() => {
-    return allPokemon
-      .filter((pokemon) => !assignedIds.includes(pokemon.id))
-      .filter(
-        (pokemon) =>
-          pokemon.name.toLowerCase().includes(unrankedSearchTerm.toLowerCase()) ||
-          pokemon.id.toString().includes(unrankedSearchTerm)
-      );
-  }, [allPokemon, assignedIds, unrankedSearchTerm]);
+    if (unrankedSearchTerm.trim()) {
+      if (searchResults === null) return [];
+
+      return searchResults
+        .filter((id) => !assignedIdSet.has(id))
+        .map((id) => pokemonMap.get(id))
+        .filter((pokemon): pokemon is Pokemon => Boolean(pokemon));
+    }
+
+    return allPokemon.filter((pokemon) => !assignedIdSet.has(pokemon.id));
+  }, [allPokemon, assignedIdSet, unrankedSearchTerm, searchResults, pokemonMap]);
 
   const handleExport = async () => {
     if (!tierListRef.current) return;
@@ -433,7 +542,7 @@ export function TierList({ initialPokemon }: TierListProps) {
 
               <div className="flex-1 p-2 flex flex-wrap gap-2 content-start">
                 {tiers[tier.id].map((id) => {
-                  const pokemon = allPokemon.find((item) => item.id === id);
+                  const pokemon = pokemonMap.get(id);
 
                   if (!pokemon) {
                     return (
@@ -502,7 +611,12 @@ export function TierList({ initialPokemon }: TierListProps) {
             selectedItem && selectedItem.sourceTier !== null ? 'border-poke-red/50 bg-poke-red/5' : ''
           }`}
         >
-          {filteredUnrankedPokemon.length === 0 && !hasMore ? (
+          {searchLoading ? (
+            <div className="w-full flex flex-col items-center justify-center gap-3 py-10 text-muted-foreground font-medium">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>{t('app.loading')}</span>
+            </div>
+          ) : filteredUnrankedPokemon.length === 0 ? (
             <p className="text-muted-foreground text-center w-full py-10 italic">
               {unrankedSearchTerm ? t('app.noPokemonFound') : t('tiers.allPokemonClassified')}
             </p>
@@ -533,7 +647,7 @@ export function TierList({ initialPokemon }: TierListProps) {
                 </div>
               ))}
 
-              {hasMore && (
+              {!unrankedSearchTerm && hasMore && (
                 <div
                   ref={loadMoreRef}
                   className="w-full flex justify-center items-center py-6 min-h-16"
