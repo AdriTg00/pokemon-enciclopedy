@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { ThemeToggle } from './components/ThemeToggle';
-import { Loader2 } from 'lucide-react';
+import { Loader2, SearchX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LanguageToggle } from './components/LanguageToggle';
 import { PokemonCard } from './components/PokemonCard';
@@ -8,6 +8,7 @@ import { PokemonDetail } from './components/PokemonDetail';
 import { SearchBar } from './components/SearchBar';
 import { FilterSection } from './components/FilterSection';
 import { TierList } from './components/TierList';
+import { PokeballLogo } from './components/PokeballLogo';
 import type { Pokemon, PokemonDetail as PokemonDetailType, PokemonType } from '../types/pokemon';
 import { GENERATION_RANGES } from '../types/pokemon';
 import { fetchPokemonRange, fetchPokemonDetail } from '../services/pokemonApi';
@@ -217,19 +218,25 @@ export default function App() {
     }, [i18n.language, selectedPokemon]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-6 transition-colors">
-      <header className="bg-card text-card-foreground border-b border-border shadow-md sticky top-0 z-40 transition-colors">
-        <div className="px-4 py-4 sm:py-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
-            <h1
-              className="
-                text-4xl sm:text-6xl font-black tracking-wide
-                text-red-600
-                drop-shadow-[3px_3px_0px_#facc15]
-                [-webkit-text-stroke:2px_#1e3a8a]
-              "
-            >
-              PokéManiaco
+    <div
+      className="min-h-screen bg-background text-foreground pb-10 transition-colors"
+    >
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 transition-colors">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 sm:py-5">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <h1 className="flex items-center gap-3 select-none">
+              <span className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-card border border-border shadow-sm transition-transform duration-300 hover:rotate-12">
+                <PokeballLogo className="w-7 h-7 sm:w-8 sm:h-8 drop-shadow-sm" />
+              </span>
+
+              <span className="flex flex-col leading-none">
+                <span className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+                  Poké<span className="text-poke-red">Maniaco</span>
+                </span>
+                <span className="text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground mt-1.5">
+                  {t('app.tagline')}
+                </span>
+              </span>
             </h1>
 
             <div className="flex items-center gap-2">
@@ -238,7 +245,7 @@ export default function App() {
 
               <button
                 onClick={() => setView(view === 'dex' ? 'tierlist' : 'dex')}
-                className="rounded-full bg-primary px-3 py-2 sm:px-4 text-xs sm:text-sm font-bold text-primary-foreground shadow-md transition-transform hover:scale-105 whitespace-nowrap"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs sm:text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md active:scale-[0.97] whitespace-nowrap"
               >
                 {view === 'dex' ? t('app.viewTierList') : t('app.backToDex')}
               </button>
@@ -246,17 +253,17 @@ export default function App() {
           </div>
 
           {view === 'dex' && (
-            <div className="flex justify-center">
+            <div className="mt-4 sm:mt-5 flex justify-center">
               <SearchBar value={searchTerm} onChange={setSearchTerm} />
             </div>
           )}
         </div>
       </header>
 
-      <div className="px-3 sm:px-4 py-4 sm:py-8 max-w-7xl mx-auto">
+      <div className="px-4 sm:px-6 py-6 sm:py-10 max-w-7xl mx-auto">
         {view === 'dex' ? (
           <>
-            <div className="mb-4 sm:mb-8 bg-card text-card-foreground border border-border rounded-2xl p-4 sm:p-6 shadow-md transition-colors">
+            <div className="mb-6 sm:mb-10">
               <FilterSection
                 selectedGeneration={selectedGeneration}
                 selectedType={selectedType}
@@ -267,17 +274,20 @@ export default function App() {
 
             {loading ? (
               <div className="flex justify-center items-center h-64">
-                <Loader2 className="w-12 h-12 animate-spin text-primary" />
+                <div className="relative">
+                  <Loader2 className="w-10 h-10 animate-spin text-poke-red" />
+                </div>
               </div>
             ) : (
               <>
-                <div className="text-center mb-4 sm:mb-6">
-                  <p className="text-muted-foreground font-medium text-sm sm:text-base">
+                <div className="text-center mb-5 sm:mb-7">
+                  <p className="inline-flex items-center gap-2 text-muted-foreground font-medium text-sm sm:text-base">
+                    <span className="w-1.5 h-1.5 rounded-full bg-poke-red/80" />
                     {t('app.showing', { count: filteredPokemon.length })}
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
                   {filteredPokemon.map((pokemon) => (
                     <PokemonCard
                       key={pokemon.id}
@@ -290,9 +300,9 @@ export default function App() {
                 {hasMore && (
                   <div ref={loadMoreRef} className="flex justify-center items-center py-8 min-h-20">
                     {loadingMore && (
-                      <div className="flex items-center gap-1 text-sm font-medium text-muted-foreground">
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin text-poke-red/70" />
                         <span>{t('app.loading')}</span>
-                        <span className="animate-pulse">...</span>
                       </div>
                     )}
                   </div>
@@ -301,11 +311,14 @@ export default function App() {
             )}
 
             {filteredPokemon.length === 0 && !loading && (
-              <div className="text-center py-16">
-                <p className="text-muted-foreground text-lg sm:text-xl">
+              <div className="text-center py-20">
+                <div className="mx-auto mb-5 flex items-center justify-center w-16 h-16 rounded-2xl bg-card border border-border shadow-sm">
+                  <SearchX className="w-7 h-7 text-muted-foreground/70" />
+                </div>
+                <p className="text-foreground text-lg sm:text-xl font-semibold tracking-tight">
                   {t('app.noPokemonFound')}
                 </p>
-                <p className="text-muted-foreground/70 mt-2 text-sm sm:text-base">
+                <p className="text-muted-foreground/80 mt-2 text-sm sm:text-base">
                   {t('app.tryAdjustingFilters')}
                 </p>
               </div>
@@ -321,8 +334,13 @@ export default function App() {
       )}
 
       {loadingDetail && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <Loader2 className="w-12 h-12 animate-spin text-white" />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="rounded-2xl bg-card border border-border shadow-2xl px-8 py-6 flex flex-col items-center gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-poke-red" />
+            <span className="text-sm font-medium text-muted-foreground">
+              {t('app.loading')}
+            </span>
+          </div>
         </div>
       )}
     </div>

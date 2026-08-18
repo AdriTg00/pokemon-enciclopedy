@@ -15,38 +15,51 @@ export function PokemonCard({ pokemon, onClick }: PokemonCardProps) {
 
   return (
     <motion.div
-      whileHover={{ scale: 1.05, y: -5 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={{ y: -6 }}
+      whileTap={{ scale: 0.97 }}
       onClick={onClick}
-      className="cursor-pointer rounded-xl sm:rounded-2xl overflow-hidden border border-border shadow-lg transition-all hover:shadow-2xl active:shadow-xl dark:shadow-black/40"
-      style={{
-        background: `linear-gradient(135deg, ${bgColor}dd, ${bgColor}99)`,
-      }}
+      className="group relative cursor-pointer rounded-2xl border border-border/80 bg-card shadow-sm transition-all hover:border-border hover:shadow-lg hover:shadow-black/5 dark:shadow-black/20 dark:hover:shadow-black/40"
     >
-      <div className="p-3 sm:p-4 relative">
-        <div className="absolute top-1 right-1 sm:top-2 sm:right-2 text-white/40 font-bold text-lg sm:text-2xl">
-          #{pokemon.id.toString().padStart(3, "0")}
+      <div
+        className="pointer-events-none absolute -top-12 -right-12 h-36 w-36 rounded-full opacity-20 blur-2xl transition-all duration-300 group-hover:opacity-40 dark:opacity-25"
+        style={{ backgroundColor: bgColor }}
+      />
+
+      <div className="relative p-3 sm:p-4">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="font-semibold uppercase tracking-wider text-[10px] sm:text-[11px] text-muted-foreground/80">
+            #{pokemon.id.toString().padStart(3, "0")}
+          </span>
         </div>
 
-        <div className="flex justify-center items-center h-24 sm:h-32 mb-2">
+        <div className="mb-3 flex items-center justify-center h-20 sm:h-28">
           <img
             src={pokemon.sprite}
             alt={pokemon.name}
-            className="w-20 h-20 sm:w-28 sm:h-28 object-contain drop-shadow-lg"
+            loading="lazy"
+            className="h-20 w-20 sm:h-24 sm:w-24 object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.14)] transition-transform duration-300 group-hover:scale-110"
           />
         </div>
 
-        <h3 className="text-white font-bold text-base sm:text-xl capitalize text-center mb-2 truncate px-1 drop-shadow-sm">
+        <h3 className="truncate px-1 text-center font-bold text-sm sm:text-base capitalize tracking-tight text-foreground">
           {pokemon.name}
         </h3>
 
-        <div className="flex gap-1 sm:gap-2 justify-center flex-wrap">
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
           {pokemon.types.map((type) => (
             <span
               key={type}
-              className="px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-semibold text-white capitalize shadow-md border border-white/20"
-              style={{ backgroundColor: typeColors[type] }}
+              className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize transition-colors group-hover:border-current"
+              style={{
+                color: typeColors[type],
+                backgroundColor: `${typeColors[type]}14`,
+                borderColor: `${typeColors[type]}40`,
+              }}
             >
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: typeColors[type] }}
+              />
               {t(`types.${type.toLowerCase()}`, { defaultValue: type })}
             </span>
           ))}

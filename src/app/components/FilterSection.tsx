@@ -1,4 +1,4 @@
-import { Button } from "./ui/button";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { POKEMON_TYPES, TYPE_COLORS, PokemonType } from "@/types/pokemon";
 
@@ -25,6 +25,14 @@ const types: readonly PokemonType[] = POKEMON_TYPES;
 
 const typeColors = TYPE_COLORS;
 
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <h3 className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+      {children}
+    </h3>
+  );
+}
+
 export function FilterSection({
   selectedGeneration,
   selectedType,
@@ -32,61 +40,91 @@ export function FilterSection({
   onTypeChange,
 }: FilterSectionProps) {
   const { t } = useTranslation();
+
+  const generationButton = (active: boolean) =>
+    `rounded-full px-3.5 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold whitespace-nowrap transition-all active:scale-95 ${
+      active
+        ? "bg-foreground text-background shadow-sm"
+        : "text-muted-foreground hover:text-foreground"
+    }`;
+
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-7">
       <div>
-        <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3">{t("filters.generation")}</h3>
-        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 sm:pb-0">
-          <div className="flex sm:flex-wrap gap-2 min-w-max sm:min-w-0">
-            <Button
-              variant={selectedGeneration === null ? "default" : "outline"}
+        <SectionLabel>{t("filters.generation")}</SectionLabel>
+        <div className="overflow-x-auto -mx-1 px-1 pb-2">
+          <div className="inline-flex min-w-max items-center gap-1 rounded-full border border-border bg-card p-1 shadow-sm">
+            <button
+              type="button"
               onClick={() => onGenerationChange(null)}
-              className="rounded-full text-sm whitespace-nowrap flex-shrink-0"
-              size="sm"
+              className={generationButton(selectedGeneration === null)}
             >
               {t("filters.all")}
-            </Button>
+            </button>
             {generations.map((gen) => (
-              <Button
+              <button
                 key={gen.num}
-                variant={selectedGeneration === gen.num ? "default" : "outline"}
+                type="button"
                 onClick={() => onGenerationChange(gen.num)}
-                className="rounded-full text-sm whitespace-nowrap flex-shrink-0"
-                size="sm"
+                title={gen.range}
+                className={generationButton(selectedGeneration === gen.num)}
               >
                 {gen.name}
-              </Button>
+              </button>
             ))}
           </div>
         </div>
       </div>
 
       <div>
-        <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3">{t("filters.type")}</h3>
-        <div className="overflow-x-auto -mx-4 px-6 sm:mx-0 sm:px-2 py-3">
-          <div className="flex sm:flex-wrap gap-3 min-w-max sm:min-w-0">
-            <Button
-              variant={selectedType === null ? "default" : "outline"}
+        <SectionLabel>{t("filters.type")}</SectionLabel>
+        <div className="overflow-x-auto -mx-1 px-1 pb-2">
+          <div className="flex gap-2 min-w-max sm:flex-wrap sm:min-w-0">
+            <button
+              type="button"
               onClick={() => onTypeChange(null)}
-              className="rounded-full text-sm whitespace-nowrap flex-shrink-0"
-              size="sm"
+              className={`rounded-full px-3.5 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold whitespace-nowrap transition-all active:scale-95 ${
+                selectedType === null
+                  ? "bg-foreground text-background shadow-sm"
+                  : "border border-border bg-card text-muted-foreground hover:text-foreground"
+              }`}
             >
               {t("filters.all")}
-            </Button>
-            {types.map((type) => (
-              <button
-                key={type}
-                onClick={() => onTypeChange(type)}
-                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full capitalize font-semibold text-white transition-all text-xs sm:text-sm whitespace-nowrap flex-shrink-0 ${
-                  selectedType === type
-                    ? "shadow-[0_0_0_3px_rgba(100,116,139,0.5)] scale-105"
-                    : "shadow-md opacity-80 hover:opacity-100 active:scale-95"
-                }`}
-                style={{ backgroundColor: typeColors[type] }}
-              >
-                {t(`types.${type}`)}
-              </button>
-            ))}
+            </button>
+
+            {types.map((type) => {
+              const color = typeColors[type];
+              const active = selectedType === type;
+
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => onTypeChange(type)}
+                  className="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs sm:text-sm font-semibold capitalize whitespace-nowrap transition-all active:scale-95"
+                  style={
+                    active
+                      ? {
+                          backgroundColor: color,
+                          borderColor: color,
+                          color: "#ffffff",
+                          boxShadow: `0 4px 14px -4px ${color}99`,
+                        }
+                      : {
+                          backgroundColor: `${color}14`,
+                          borderColor: `${color}40`,
+                          color,
+                        }
+                  }
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ backgroundColor: active ? "#ffffff" : color }}
+                  />
+                  {t(`types.${type}`)}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

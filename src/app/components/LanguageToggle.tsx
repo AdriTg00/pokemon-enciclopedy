@@ -1,5 +1,11 @@
 import { useTranslation } from "react-i18next";
 
+const languages = [
+  { code: "en", label: "EN" },
+  { code: "es", label: "ES" },
+  { code: "fr", label: "FR" },
+];
+
 export function LanguageToggle() {
   const { t, i18n } = useTranslation();
 
@@ -9,20 +15,26 @@ export function LanguageToggle() {
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm font-medium text-muted-foreground">
-        {t("language.label")}
-      </span>
+    <div className="inline-flex items-center gap-0.5 rounded-full border border-border bg-card p-1 shadow-sm">
+      {languages.map((lang) => {
+        const active = i18n.language === lang.code;
 
-      <select
-        value={i18n.language}
-        onChange={(event) => handleChangeLanguage(event.target.value)}
-        className="rounded-full border border-border bg-card px-3 py-2 text-sm text-card-foreground shadow-sm transition-colors hover:bg-accent"
-      >
-        <option value="en">{t("language.english")}</option>
-        <option value="es">{t("language.spanish")}</option>
-        <option value="fr">{t("language.french")}</option>
-      </select>
+        return (
+          <button
+            key={lang.code}
+            type="button"
+            onClick={() => handleChangeLanguage(lang.code)}
+            aria-label={t(`language.${lang.code === "en" ? "english" : lang.code === "es" ? "spanish" : "french"}`)}
+            className={`rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide transition-all ${
+              active
+                ? "bg-foreground text-background shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {lang.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 {
   "app": {
     "title": "PokéDex",
+    "tagline": "Enciclopedia Pokémon",
     "searchPlaceholder": "Buscar Pokémon...",
     "showing": "Mostrando {{count}} Pokémon",
     "noPokemonFound": "No se encontraron Pokémon",
@@ -19,7 +20,8 @@
     "height": "Altura",
     "weight": "Peso",
     "abilities": "Habilidades",
-    "baseStats": "Estadísticas base"
+    "baseStats": "Estadísticas base",
+    "totalStats": "Total"
   },
   "theme": {
     "dark": "Oscuro",

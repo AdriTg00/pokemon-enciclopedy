@@ -411,7 +411,7 @@ export function TierList({ initialPokemon }: TierListProps) {
         <div
           ref={tierListRef}
           data-export-tier-list="true"
-          className="grid gap-2 bg-border border border-border rounded-xl overflow-hidden shadow-xl"
+          className="grid gap-2 bg-border border border-border/70 rounded-2xl overflow-hidden shadow-xl"
         >
           {TIER_CONFIG.map((tier) => (
             <div
@@ -419,14 +419,14 @@ export function TierList({ initialPokemon }: TierListProps) {
               onDragOver={onDragOver}
               onDrop={(event) => onDrop(event, tier.id)}
               onClick={() => handleContainerClick(tier.id)}
-              className={`flex min-h-[100px] bg-card transition-all hover:bg-accent/50 ${
+              className={`flex min-h-[100px] bg-card transition-all hover:bg-accent/40 ${
                 selectedItem && selectedItem.sourceTier !== tier.id
                   ? 'ring-2 ring-primary/30 bg-primary/5'
                   : ''
               }`}
             >
               <div
-                className={`${tier.color} w-20 sm:w-32 flex items-center justify-center text-white font-black text-2xl sm:text-4xl shadow-inner`}
+                className={`${tier.color} w-20 sm:w-32 flex items-center justify-center text-white font-black text-2xl sm:text-4xl shadow-inner border-r border-black/10`}
               >
                 {tier.id}
               </div>
@@ -483,10 +483,10 @@ export function TierList({ initialPokemon }: TierListProps) {
         </div>
       </div>
 
-      <div className="w-full lg:w-96 bg-card border border-border rounded-2xl p-4 sm:p-6 shadow-md flex-shrink-0 flex flex-col">
+      <div className="w-full lg:w-96 bg-card/80 backdrop-blur-sm border border-border/70 rounded-2xl p-4 sm:p-6 shadow-sm flex-shrink-0 flex flex-col">
         <div className="mb-4">
           <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
-            <span className="w-3 h-3 bg-primary rounded-full animate-pulse" />
+            <span className="w-2.5 h-2.5 bg-poke-red rounded-full animate-pulse" />
             {t('tiers.unranked')}
           </h3>
 
@@ -498,8 +498,8 @@ export function TierList({ initialPokemon }: TierListProps) {
           onDragOver={onDragOver}
           onDrop={(event) => onDrop(event, null)}
           onClick={() => handleContainerClick(null)}
-          className={`flex flex-wrap gap-2 min-h-[250px] p-4 bg-muted/50 rounded-xl border-2 border-dashed border-border transition-all hover:border-primary/50 flex-1 overflow-y-auto max-h-[calc(100vh-250px)] ${
-            selectedItem && selectedItem.sourceTier !== null ? 'border-primary/50 bg-primary/5' : ''
+          className={`flex flex-wrap gap-2 min-h-[250px] p-4 bg-muted/40 rounded-xl border-2 border-dashed border-muted-foreground/25 transition-all hover:border-poke-red/40 flex-1 overflow-y-auto max-h-[calc(100vh-250px)] ${
+            selectedItem && selectedItem.sourceTier !== null ? 'border-poke-red/50 bg-poke-red/5' : ''
           }`}
         >
           {filteredUnrankedPokemon.length === 0 && !hasMore ? (
