@@ -6,9 +6,11 @@ import { TYPE_COLORS as typeColors } from "@/types/pokemon";
 interface PokemonCardProps {
   pokemon: Pokemon;
   onClick: () => void;
+  statValue?: number | null;
+  statLabel?: string;
 }
 
-export function PokemonCard({ pokemon, onClick }: PokemonCardProps) {
+export function PokemonCard({ pokemon, onClick, statValue, statLabel }: PokemonCardProps) {
   const { t } = useTranslation();
   const primaryType = pokemon.types[0];
   const bgColor = typeColors[primaryType] || "#A8A878";
@@ -30,6 +32,28 @@ export function PokemonCard({ pokemon, onClick }: PokemonCardProps) {
           <span className="font-semibold uppercase tracking-wider text-[10px] sm:text-[11px] text-muted-foreground/80">
             #{pokemon.id.toString().padStart(3, "0")}
           </span>
+
+          {statLabel && (
+            <span
+              title={
+                statValue == null
+                  ? `${statLabel}: …`
+                  : `${statLabel}: ${statValue}`
+              }
+              className="inline-flex items-center gap-1.5 rounded-full border border-poke-red/25 bg-poke-red/10 px-2 py-0.5 text-[11px] font-bold text-poke-red"
+            >
+              {statValue == null ? (
+                <span className="h-2 w-2 animate-pulse rounded-full bg-poke-red/60" />
+              ) : (
+                <>
+                  <span className="hidden sm:inline text-[9px] font-semibold uppercase tracking-wide opacity-70">
+                    {statLabel}
+                  </span>
+                  <span className="tabular-nums">{statValue}</span>
+                </>
+              )}
+            </span>
+          )}
         </div>
 
         <div className="mb-3 flex items-center justify-center h-20 sm:h-28">

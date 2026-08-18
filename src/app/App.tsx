@@ -9,9 +9,22 @@ import { SearchBar } from './components/SearchBar';
 import { FilterSection } from './components/FilterSection';
 import { TierList } from './components/TierList';
 import { PokeballLogo } from './components/PokeballLogo';
-import type { Pokemon, PokemonDetail as PokemonDetailType, PokemonType } from '../types/pokemon';
-import { GENERATION_RANGES } from '../types/pokemon';
-import { fetchPokemonRange, fetchPokemonDetail } from '../services/pokemonApi';
+import type {
+  Pokemon,
+  PokemonDetail as PokemonDetailType,
+  PokemonType,
+  PokemonStats,
+  PokemonSortStat,
+} from '../types/pokemon';
+import {
+  GENERATION_RANGES,
+  getPokemonStatValue,
+} from '../types/pokemon';
+import {
+  fetchPokemonRange,
+  fetchPokemonDetail,
+  fetchPokemonStatsByIds,
+} from '../services/pokemonApi';
 
 const PAGE_SIZE = 20;
 const TOTAL_POKEMON = 1025;
@@ -23,8 +36,56 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGeneration, setSelectedGeneration] = useState<number | null>(null);
   const [selectedType, setSelectedType] = useState<PokemonType | null>(null);
+  const [selectedStat, setSelectedStat] = useState<PokemonSortStat | null>(null);
+  const [sortAscending, setSortAscending] = useState(false);
+  const [statsMap, setStatsMap] = useState<Record<number, PokemonStats>>({});
   const [loading, setLoading] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  const statsMapRef = useRef<Record<number, PokemonStats>>({});
+  const statsInFlightRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    statsMapRef.current = statsMap;
+  }, [statsMap]);
+
+  useEffect(() => {
+    if (view !== 'dex' || selectedStat === null) return;
+
+    const loadMissingStats = async () => {
+      const missingIds = pokemonList
+        .map((pokemon) => pokemon.id)
+        .filter(
+          (id) => !statsMapRef.current[id] && !statsInFlightRef.current.has(id)
+        );
+
+      if (missingIds.length === 0) return;
+
+      missingIds.forEach((id) => statsInFlightRef.current.add(id));
+
+      try {
+        const statsList = await fetchPokemonStatsByIds(missingIds);
+
+        setStatsMap((prev) => {
+          const next = { ...prev };
+
+          missingIds.forEach((id, index) => {
+            if (index < statsList.length) {
+              next[id] = statsList[index];
+            }
+          });
+
+          return next;
+        });
+      } catch (error) {
+        console.error('Error loading Pokémon stats:', error);
+      } finally {
+        missingIds.forEach((id) => statsInFlightRef.current.delete(id));
+      }
+    };
+
+    loadMissingStats();
+  }, [pokemonList, selectedStat, view]);
 
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextPokemonId, setNextPokemonId] = useState(1);
@@ -169,8 +230,20 @@ export default function App() {
       filtered = filtered.filter((pokemon) => pokemon.types.includes(selectedType));
     }
 
+    if (selectedStat) {
+      filtered = [...filtered].sort((a, b) => {
+        const statsA = statsMap[a.id];
+        const statsB = statsMap[b.id];
+
+        const valueA = statsA ? getPokemonStatValue(statsA, selectedStat) : Infinity;
+        const valueB = statsB ? getPokemonStatValue(statsB, selectedStat) : Infinity;
+
+        return sortAscending ? valueA - valueB : valueB - valueA;
+      });
+    }
+
     return filtered;
-  }, [searchTerm, selectedGeneration, selectedType, pokemonList]);
+  }, [searchTerm, selectedGeneration, selectedType, pokemonList, selectedStat, sortAscending, statsMap]);
 
   const handlePokemonClick = async (id: number) => {
     setLoadingDetail(true);
@@ -217,11 +290,24 @@ export default function App() {
     };
     }, [i18n.language, selectedPokemon]);
 
+  const statLabel = selectedStat
+    ? selectedStat === 'total'
+      ? t('pokemonDetail.totalStats')
+      : t(`stats.${selectedStat}`, { defaultValue: selectedStat })
+    : undefined;
+
+  const statValueFor = (id: number): number | null | undefined => {
+    if (!selectedStat) return undefined;
+
+    const stats = statsMap[id];
+
+    return stats ? getPokemonStatValue(stats, selectedStat) : null;
+  };
+
   return (
     <div
       className="min-h-screen bg-background text-foreground pb-10 transition-colors"
-    >
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 transition-colors">
+    >      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 transition-colors">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 sm:py-5">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <h1 className="flex items-center gap-3 select-none">
@@ -267,8 +353,14 @@ export default function App() {
               <FilterSection
                 selectedGeneration={selectedGeneration}
                 selectedType={selectedType}
+                selectedStat={selectedStat}
+                sortDirection={sortAscending ? 'asc' : 'desc'}
                 onGenerationChange={setSelectedGeneration}
                 onTypeChange={setSelectedType}
+                onStatChange={setSelectedStat}
+                onSortDirectionChange={(direction) =>
+                  setSortAscending(direction === 'asc')
+                }
               />
             </div>
 
@@ -284,6 +376,13 @@ export default function App() {
                   <p className="inline-flex items-center gap-2 text-muted-foreground font-medium text-sm sm:text-base">
                     <span className="w-1.5 h-1.5 rounded-full bg-poke-red/80" />
                     {t('app.showing', { count: filteredPokemon.length })}
+                    {selectedStat &&
+                      t('app.orderHint', {
+                        stat: statLabel,
+                        order: sortAscending
+                          ? t('filters.ascending')
+                          : t('filters.descending'),
+                      })}
                   </p>
                 </div>
 
@@ -292,6 +391,8 @@ export default function App() {
                     <PokemonCard
                       key={pokemon.id}
                       pokemon={pokemon}
+                      statValue={statValueFor(pokemon.id)}
+                      statLabel={statLabel}
                       onClick={() => handlePokemonClick(pokemon.id)}
                     />
                   ))}

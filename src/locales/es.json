@@ -9,12 +9,16 @@
     "imageError": "Error al cargar la imagen",
     "viewTierList": "Tier List",
     "backToDex": "Volver a la PokéDex",
-    "loading": "Cargando"
+    "loading": "Cargando",
+    "orderHint": " · por {{stat}} {{order}}"
   },
   "filters": {
     "generation": "Generación",
     "type": "Tipo",
-    "all": "Todos"
+    "stat": "Mejores stats",
+    "all": "Todos",
+    "ascending": "Ascendente",
+    "descending": "Descendente"
   },
   "pokemonDetail": {
     "height": "Altura",

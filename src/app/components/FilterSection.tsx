@@ -1,12 +1,23 @@
 import type { ReactNode } from "react";
+import { ArrowDownNarrowWide, ArrowUpNarrowWide } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { POKEMON_TYPES, TYPE_COLORS, PokemonType } from "@/types/pokemon";
+import {
+  POKEMON_TYPES,
+  TYPE_COLORS,
+  POKEMON_SORT_STATS,
+  PokemonType,
+  PokemonSortStat,
+} from "@/types/pokemon";
 
 interface FilterSectionProps {
   selectedGeneration: number | null;
   selectedType: PokemonType | null;
+  selectedStat: PokemonSortStat | null;
+  sortDirection: 'asc' | 'desc';
   onGenerationChange: (gen: number | null) => void;
   onTypeChange: (type: PokemonType | null) => void;
+  onStatChange: (stat: PokemonSortStat | null) => void;
+  onSortDirectionChange: (direction: 'asc' | 'desc') => void;
 }
 
 const generations = [
@@ -36,8 +47,12 @@ function SectionLabel({ children }: { children: ReactNode }) {
 export function FilterSection({
   selectedGeneration,
   selectedType,
+  selectedStat,
+  sortDirection,
   onGenerationChange,
   onTypeChange,
+  onStatChange,
+  onSortDirectionChange,
 }: FilterSectionProps) {
   const { t } = useTranslation();
 
@@ -126,6 +141,61 @@ export function FilterSection({
               );
             })}
           </div>
+        </div>
+      </div>
+
+      <div>
+        <SectionLabel>{t("filters.stat")}</SectionLabel>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex min-w-max items-center gap-0.5 rounded-full border border-border bg-card p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => onStatChange(null)}
+              className={generationButton(selectedStat === null)}
+            >
+              {t("filters.all")}
+            </button>
+            {POKEMON_SORT_STATS.map((stat) => {
+              const statName =
+                stat === "total"
+                  ? t("pokemonDetail.totalStats")
+                  : t(`stats.${stat}`, { defaultValue: stat });
+
+              return (
+                <button
+                  key={stat}
+                  type="button"
+                  onClick={() => onStatChange(stat)}
+                  className={generationButton(selectedStat === stat)}
+                >
+                  {statName}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              onSortDirectionChange(sortDirection === "asc" ? "desc" : "asc")
+            }
+            disabled={selectedStat === null}
+            title={
+              sortDirection === "asc"
+                ? t("filters.descending")
+                : t("filters.ascending")
+            }
+            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-semibold text-muted-foreground shadow-sm transition-all hover:text-foreground active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+          >
+            {sortDirection === "asc" ? (
+              <ArrowUpNarrowWide className="h-3.5 w-3.5" />
+            ) : (
+              <ArrowDownNarrowWide className="h-3.5 w-3.5" />
+            )}
+            {sortDirection === "asc"
+              ? t("filters.ascending")
+              : t("filters.descending")}
+          </button>
         </div>
       </div>
     </div>

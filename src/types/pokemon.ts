@@ -71,3 +71,40 @@ export const TYPE_COLORS: Record<PokemonType, string> = {
   steel: '#B8B8D0',
   fairy: '#EE99AC',
 };
+
+export type PokemonSortStat =
+  | 'hp'
+  | 'attack'
+  | 'defense'
+  | 'specialAttack'
+  | 'specialDefense'
+  | 'speed'
+  | 'total';
+
+export const POKEMON_SORT_STATS: readonly PokemonSortStat[] = [
+  'hp',
+  'attack',
+  'defense',
+  'specialAttack',
+  'specialDefense',
+  'speed',
+  'total',
+];
+
+export function getPokemonStatValue(
+  stats: PokemonStats,
+  stat: PokemonSortStat
+): number {
+  if (stat === 'total') {
+    return (
+      stats.hp +
+      stats.attack +
+      stats.defense +
+      stats.specialAttack +
+      stats.specialDefense +
+      stats.speed
+    );
+  }
+
+  return stats[stat];
+}

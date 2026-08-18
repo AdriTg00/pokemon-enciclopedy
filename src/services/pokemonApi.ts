@@ -1,4 +1,4 @@
-import type { Pokemon, PokemonDetail } from "@/types/pokemon";
+import type { Pokemon, PokemonDetail, PokemonStats } from "@/types/pokemon";
 
 const POKEAPI_BASE = "https://pokeapi.co/api/v2";
 const BATCH_SIZE = 20;
@@ -55,6 +55,7 @@ interface AbilityAPIResponse {
 
 const pokemonCache = new Map<number, Pokemon>();
 const pokemonDetailCache = new Map<string, PokemonDetail>();
+const pokemonStatsCache = new Map<number, PokemonStats>();
 const abilityCache = new Map<string, { name: string; description: string }>();
 
 function getPokemonSprite(data: PokeAPIResponse): string {
@@ -258,8 +259,41 @@ export async function fetchPokemonByIds(ids: number[]): Promise<Pokemon[]> {
     .sort((a, b) => a.id - b.id);
 }
 
+export async function fetchPokemonStats(id: number): Promise<PokemonStats> {
+  if (pokemonStatsCache.has(id)) {
+    return pokemonStatsCache.get(id)!;
+  }
+
+  const response = await fetchWithRetry(`${POKEAPI_BASE}/pokemon/${id}`);
+  const data: PokeAPIResponse = await response.json();
+
+  const stats = mapStats(data);
+
+  pokemonStatsCache.set(id, stats);
+
+  return stats;
+}
+
+export async function fetchPokemonStatsByIds(
+  ids: number[]
+): Promise<PokemonStats[]> {
+  const uniqueIds = Array.from(new Set(ids));
+
+  const results = await runInBatches(uniqueIds, 10, async (id) => {
+    try {
+      return await fetchPokemonStats(id);
+    } catch (error) {
+      console.error(`Error loading stats for Pokémon ${id}:`, error);
+      return null;
+    }
+  });
+
+  return results.filter((stats): stats is PokemonStats => stats !== null);
+}
+
 export function clearPokemonCache(): void {
   pokemonCache.clear();
   pokemonDetailCache.clear();
+  pokemonStatsCache.clear();
   abilityCache.clear();
 }
